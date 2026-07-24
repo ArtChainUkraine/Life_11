@@ -32,8 +32,13 @@ header{border-bottom:1px solid var(--line);flex:0 0 auto;background:rgba(13,10,8
 .mark::after{content:'';width:7px;height:7px;background:var(--acc)}
 .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--acc);
   border:1px solid var(--line);border-radius:6px;padding:4px 10px;text-transform:uppercase}
-.pure{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ok);
-  border:1px solid rgba(88,214,104,.35);border-radius:6px;padding:4px 10px;margin-left:auto}
+.navbtns{margin-left:auto;display:flex;gap:6px}
+.nb{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:transparent;
+  color:var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.nb svg{width:19px;height:19px}
+.nb:hover:not(:disabled){color:var(--acc-hot);border-color:var(--acc-dim);background:rgba(201,168,118,.1)}
+.nb:disabled{opacity:.25;cursor:default}
+.nb#clr:hover{color:#e5705a;border-color:rgba(229,112,90,.5);background:rgba(229,112,90,.1)}
 
 .app{flex:1 1 auto;display:grid;grid-template-columns:290px minmax(0,1fr) 300px;max-width:1560px;width:100%;margin:0 auto}
 .side{padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
@@ -49,8 +54,6 @@ header{border-bottom:1px solid var(--line);flex:0 0 auto;background:rgba(13,10,8
 .desc b{color:var(--parchment);font-weight:600}
 
 .txtzone{width:100%;max-width:620px;display:flex;flex-direction:column;gap:9px}
-.zonehint{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;color:var(--acc-dim);
-  text-transform:uppercase;text-align:center}
 .inp{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   color:var(--parchment);font-family:var(--mono);padding:16px 20px;outline:none;
   font-size:clamp(17px,2vw,22px);text-align:center;letter-spacing:.03em}
@@ -145,7 +148,17 @@ select:focus{border-color:var(--acc)}
 <header><div class="nav">
   <span class="mark">taina</span>
   <span class="tag">лабораторія байткоду</span>
-  <span class="pure">чистий формат · без маркерів</span>
+  <div class="navbtns">
+    <button class="nb" id="undo" title="Назад" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="nb" id="redo" title="Вперед" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <button class="nb" id="clr" title="Очистити поле">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+    </button>
+  </div>
 </div></header>
 
 <div class="app">
@@ -184,8 +197,7 @@ select:focus{border-color:var(--acc)}
 
   <main class="center">
     <div class="txtzone">
-      <div class="zonehint">чистий байткод · жодних службових байтів</div>
-      <input type="text" id="txt" class="inp" maxlength="200" value="ТАЇНА" placeholder="Напиши щось…" autocomplete="off" spellcheck="false">
+      <input type="text" id="txt" class="inp" maxlength="200" value="" placeholder="Напиши щось…" autocomplete="off" spellcheck="false">
       <div class="rt" id="rt"></div>
     </div>
 
@@ -226,8 +238,16 @@ select:focus{border-color:var(--acc)}
 
     <div class="grp">
       <div class="sec-t">Дослідження</div>
+      <select id="alpha-set">
+        <option value="ua" selected>Українська абетка</option>
+        <option value="lat">Латиниця A–Z</option>
+        <option value="num">Цифри й знаки</option>
+        <option value="zod">Знаки зодіаку</option>
+        <option value="cur">Валюти</option>
+        <option value="mix">Стихії та символи</option>
+      </select>
       <button class="b wide gold" id="alpha-btn">⊞ Аркуш алфавіту</button>
-      <p class="desc">Таблиця орнаментів усіх літер — щоб бачити <b>чисту математику</b> кожного символу поруч.</p>
+      <p class="desc">Таблиця орнаментів усіх символів набору — щоб бачити <b>чисту математику</b> кожного поруч.</p>
       <div class="report" id="report"></div>
     </div>
 
@@ -264,7 +284,7 @@ let mode='oct', fieldMode='auto';
 let W=11,H=11, grid=null, dmask=null;
 let shape='square', frame=true, grayBg=true;
 let hasImage=false, menuOpen=false, busy=false;
-let TEXT='ТАЇНА';
+let TEXT='';
 
 const CV=$('cv'), CTX=CV.getContext('2d',{willReadFrequently:true});
 const OFF=document.createElement('canvas'), OCTX=OFF.getContext('2d',{willReadFrequently:true});
@@ -585,6 +605,7 @@ $('file').onchange=e=>{
     TEXT=best.text;
     okChime();
     await typeOut($('txt'),best.text,26);
+    prevLen=best.text.length;pushHist(best.text);
     $('rt').innerHTML='<span class="g">✓ прочитано · '+modeName(best.mode)+
       ' · поле '+best.n+(best.pad?' · рамка '+best.pad:'')+'</span>';
     $('report').innerHTML='<div class="sec-t" style="margin-bottom:4px">Варіантів прочитання: '+found.length+'</div>'+
@@ -629,7 +650,14 @@ function savePNG(name){
     a.download=name+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);tone(660,.09,.07)});}
 
 /* ═══════ АРКУШ АЛФАВІТУ ═══════ */
-const ALPHABET='АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ';
+const SETS={
+  ua:{name:'Українська абетка',chars:[...'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ']},
+  lat:{name:'Латиниця',chars:[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']},
+  num:{name:'Цифри й знаки',chars:[...'0123456789+-=<>?!@#$%&*/']},
+  zod:{name:'Знаки зодіаку',chars:[...'♈♉♊♋♌♍♎♏♐♑♒♓']},
+  cur:{name:'Валюти',chars:[...'₴€$£¥₽¢₹₩₪₺₮₦₱']},
+  mix:{name:'Стихії та символи',chars:[...'♥★☀☾✦♦☘✿⚡☺✚∞☯☮♪♫☂❄✧⚘']}
+};
 function buildOne(ch,m){
   const {bits}=textBits(ch);
   const n=pickN2(m,bits.length);
@@ -638,24 +666,26 @@ function buildOne(ch,m){
   const lim=Math.min(bits.length,bc.length);
   for(let i=0;i<lim;i++){const [x,y]=bc[i];
     for(const [X,Y] of mirrors(m,n,x,y)){dm[Y*n+X]=1;if(bits[i])g[Y*n+X]=1}}
-  return {g,dm,n};}
+  return {g,dm,n,bytes:enc.encode(ch).length};}
 function drawAlphabet(){
   const m=mode==='row'?'oct':mode;
-  const chars=[...ALPHABET];
-  const cols=6,rows=Math.ceil(chars.length/cols);
+  const set=SETS[$('alpha-set').value]||SETS.ua;
+  const chars=set.chars;
+  const cols=chars.length<=14?5:6, rows=Math.ceil(chars.length/cols);
   const tiles=chars.map(c=>buildOne(c,m));
   const maxN=Math.max(...tiles.map(t=>t.n));
-  const cell=7,pad=2,tile=(maxN+pad*2)*cell,label=24,gap=14;
+  const cell=Math.max(4,Math.min(9,Math.round(60/maxN*7)));
+  const pad=2,tile=(maxN+pad*2)*cell,label=26,gap=15;
   const cv=$('sheet-cv');
   cv.width=cols*(tile+gap)+gap;
-  cv.height=rows*(tile+label+gap)+gap+34;
+  cv.height=rows*(tile+label+gap)+gap+38;
   const c=cv.getContext('2d');c.imageSmoothingEnabled=false;
   c.fillStyle='#15100b';c.fillRect(0,0,cv.width,cv.height);
   c.fillStyle='#c9a876';c.font='600 15px JetBrains Mono, monospace';c.textAlign='left';
-  c.fillText('taina · чистий байткод · симетрія '+modeName(m)+' · поле до '+maxN,gap,24);
+  c.fillText('taina · '+set.name+' · симетрія '+modeName(m)+' · поле до '+maxN,gap,25);
   tiles.forEach((t,i)=>{
     const cx=gap+(i%cols)*(tile+gap);
-    const cy=44+Math.floor(i/cols)*(tile+label+gap);
+    const cy=46+Math.floor(i/cols)*(tile+label+gap);
     const off=Math.floor((maxN-t.n)/2)*cell;
     c.fillStyle=COL.frame;c.fillRect(cx,cy,tile,tile);
     c.fillStyle=grayBg?COL.bg:COL.bgDark;
@@ -664,14 +694,17 @@ function drawAlphabet(){
       const idx=y*t.n+x;if(!t.dm[idx])continue;
       c.fillStyle=t.g[idx]?COL.one:COL.zero;
       c.fillRect(cx+pad*cell+off+x*cell,cy+pad*cell+off+y*cell,cell,cell);}
-    c.fillStyle='#ede3d0';c.font='600 15px JetBrains Mono, monospace';c.textAlign='center';
-    c.fillText(chars[i]+'  ·  '+t.n,cx+tile/2,cy+tile+17);});
+    c.fillStyle='#ede3d0';c.font='600 16px JetBrains Mono, monospace';c.textAlign='center';
+    c.fillText(chars[i],cx+tile/2,cy+tile+16);
+    c.fillStyle='#94836a';c.font='400 11px JetBrains Mono, monospace';
+    c.fillText(t.n+'×'+t.n+' · '+t.bytes+'б',cx+tile/2,cy+tile+28);});
   $('sheet').classList.remove('hide');}
 $('alpha-btn').onclick=()=>{drawAlphabet();tone(700,.1,.07)};
+$('alpha-set').onchange=()=>{if(!$('sheet').classList.contains('hide'))drawAlphabet()};
 $('sheet-close').onclick=()=>$('sheet').classList.add('hide');
 $('sheet-save').onclick=()=>{$('sheet-cv').toBlob(b=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(b);
-  a.download='taina_alphabet_'+modeName(mode)+'.png';a.click();
+  a.download='taina_'+$('alpha-set').value+'_'+modeName(mode)+'.png';a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);tone(660,.09,.07)})};
 
 /* ═══════ ПОДІЇ ═══════ */
@@ -684,11 +717,32 @@ $('shape').onclick=e=>{const b=e.target.closest('button');if(!b)return;
 $('framebtn').onclick=()=>{frame=!frame;$('framebtn').classList.toggle('on',frame);render()};
 $('graybtn').onclick=()=>{grayBg=!grayBg;$('graybtn').classList.toggle('on',grayBg);render()};
 
+/* ── історія тексту ── */
+const HIST=[''];let hPos=0,hTimer=null;
+function syncHist(){$('undo').disabled=hPos<=0;$('redo').disabled=hPos>=HIST.length-1}
+function pushHist(v){
+  if(HIST[hPos]===v)return;
+  HIST.splice(hPos+1);
+  HIST.push(v);
+  if(HIST.length>60)HIST.shift();
+  hPos=HIST.length-1;syncHist();}
+function schedHist(v){clearTimeout(hTimer);hTimer=setTimeout(()=>pushHist(v),700)}
+function applyHist(){
+  const v=HIST[hPos];
+  $('txt').value=v;TEXT=v;prevLen=v.length;
+  build();syncHist();tone(560,.06,.05);}
+$('undo').onclick=()=>{if(hPos>0){hPos--;applyHist()}};
+$('redo').onclick=()=>{if(hPos<HIST.length-1){hPos++;applyHist()}};
+$('clr').onclick=()=>{
+  clearTimeout(hTimer);pushHist('');
+  $('txt').value='';TEXT='';prevLen=0;
+  build();$('txt').focus();tone(320,.09,.06,'triangle');};
+
 let prevLen=0;
 $('txt').oninput=e=>{
   const v=e.target.value;
   if(v.length>prevLen)keyClick();
-  prevLen=v.length;TEXT=v;build();};
+  prevLen=v.length;TEXT=v;build();schedHist(v);};
 
 const EMO=['♥','★','☀','☾','✦','♦','☘','✿','⚡','☺','✚','∞'];
 EMO.forEach(s=>{const b=document.createElement('button');b.type='button';b.textContent=s;
