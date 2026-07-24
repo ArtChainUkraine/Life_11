@@ -440,47 +440,107 @@ function render(){
 /* ═══════ ДЕКОДЕР КАРТИНКИ ═══════
    Перебирає ширину рамки 0–4 модулі та три рівні яскравості:
    світле (>170) — одиниця, темне (<85) — нуль, середнє (сірий фон) — порожньо. */
+/* очікуваний стан поля для кандидата: 1 світле, 0 темне, 2 порожнє */
+function expectSq(text,m,n){
+  const {bits}=textBits(text);
+  const bc=baseCells(m,n);
+  if(bits.length>bc.length)return null;
+  if(n<pickN2(m,bits.length))return null;
+  const st=new Uint8Array(n*n).fill(2);
+  for(let i=0;i<bits.length;i++)
+    for(const [X,Y] of mirrors(m,n,bc[i][0],bc[i][1]))st[Y*n+X]=bits[i]?1:0;
+  return st;}
+function matchStates(exp,got,n,hasGray){
+  for(let i=0;i<n*n;i++){
+    const e=exp[i],g=got[i];
+    if(hasGray){if(e!==g)return false}
+    else{const ee=e===2?0:e,gg=g===2?0:g;if(ee!==gg)return false}}
+  return true;}
+
 function scanImage(px,IW,IH){
   const lum=p=>(px[p]+px[p+1]+px[p+2])/3;
-  const readSq=(T,pad,n,inv)=>{
-    const g=new Uint8Array(n*n),s=IW/T;
+  const cls=L=>L>170?1:(L<85?0:2);
+
+  /* 1. ВИМІРЮЄМО РОЗМІР МОДУЛЯ — найкоротший пробіг однакового кольору */
+  const measure=()=>{
+    let best=1e9;
+    for(const f of [.2,.35,.5,.65,.8]){
+      const y=Math.floor(IH*f);
+      let prev=-1,len=0;
+      for(let x=0;x<IW;x++){
+        const c=cls(lum((y*IW+x)*4));
+        if(c===prev)len++;else{if(prev>=0&&len<best&&x>1&&x<IW-1)best=len;prev=c;len=1}}
+      const x0=Math.floor(IW*f);
+      prev=-1;len=0;
+      for(let y2=0;y2<IH;y2++){
+        const c=cls(lum((y2*IW+x0)*4));
+        if(c===prev)len++;else{if(prev>=0&&len<best&&y2>1&&y2<IH-1)best=len;prev=c;len=1}}}
+    return best===1e9?0:best;};
+  const mm=measure();
+
+  /* 2. чи присутній сірий рівень (порожнє поле) */
+  let hasGray=false;
+  for(let i=0;i<px.length;i+=4*97){const L=(px[i]+px[i+1]+px[i+2])/3;
+    if(L>=85&&L<=170){hasGray=true;break}}
+
+  const readSq=(T,pad,n)=>{const g=new Uint8Array(n*n),s=IW/T;
     for(let y=0;y<n;y++)for(let x=0;x<n;x++){
       const p=(Math.floor((y+pad+.5)*s)*IW+Math.floor((x+pad+.5)*s))*4;
-      const L=lum(p);
-      g[y*n+x]=inv?(L<85?1:0):(L>170?1:0);}
+      g[y*n+x]=cls(lum(p));}
     return g;};
-  const readRow=(TW,TH,pad,w,h,inv)=>{
-    const g=new Uint8Array(w*h),s=IW/TW;
+  const bitsOf=(st,n)=>{const g=new Uint8Array(n*n);
+    for(let i=0;i<n*n;i++)g[i]=st[i]===1?1:0;return g};
+  const readRow=(TW,pad,w,h)=>{const g=new Uint8Array(w*h),s=IW/TW;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const p=(Math.floor((y+pad+.5)*s)*IW+Math.floor((x+pad+.5)*s))*4;
-      const L=lum(p);
-      g[y*w+x]=inv?(L<85?1:0):(L>170?1:0);}
+      g[y*w+x]=lum(p)>170?1:0;}
     return g;};
-  const all=[],seen=new Set();
-  const push=o=>{const k=o.mode+'|'+o.text;if(!seen.has(k)){seen.add(k);all.push(o)}};
 
-  if(IW===IH){
-    for(let T=MINN;T<=MAXN+8;T++){
-      if(IW%T!==0)continue;
-      for(let pad=0;pad<=4;pad++){
-        const n=T-2*pad;
-        if(n<MINN||n%2===0)continue;
-        for(const m of ['oct','quad','half']){
-          for(const inv of [false,true]){
-            const t=decodeSector(readSq(T,pad,n,inv),n,m);
-            if(t!==null){push({mode:m,n,pad,inv,text:t});break}}}}}}
+  /* 3. кандидати розміру сітки — лише ті, що відповідають виміряному модулю */
+  const Tset=new Set();
+  if(mm>0)for(const k of [1,2,.5]){
+    const ms=Math.round(mm*k);
+    if(ms>0&&IW%ms===0){const T=IW/ms;if(T>=MINN&&T<=200)Tset.add(T)}}
 
-  for(let pad=0;pad<=4;pad++)for(const w of [8,16,24,32]){
-    const TW=w+pad*2;
-    if(IW%TW!==0)continue;
-    const cell=IW/TW;
-    if(IH%cell!==0)continue;
-    const TH=IH/cell,h=TH-pad*2;
-    if(h<1||h>250)continue;
-    for(const inv of [false,true]){
-      const t=rowDecode(readRow(TW,TH,pad,w,h,inv),w,h);
-      if(t!==null){push({mode:'row',n:w,pad,inv,text:t});break}}}
-  return all;}
+  const ok=[];
+  if(IW===IH)for(const T of Tset){
+    for(const pad of [0,2]){
+      const n=T-2*pad;if(n<MINN||n%2===0)continue;
+      /* якщо припускаємо рамку — вона мусить бути однорідною */
+      if(pad>0){
+        const full=readSq(T,0,T);
+        let c0=-1,uni=true;
+        for(let y=0;y<T&&uni;y++)for(let x=0;x<T;x++){
+          if(y>=pad&&y<T-pad&&x>=pad&&x<T-pad)continue;
+          const v=full[y*T+x];
+          if(c0<0)c0=v;else if(v!==c0){uni=false;break}}
+        if(!uni)continue;}
+      const st=readSq(T,pad,n);
+      const gb=bitsOf(st,n);
+      for(const m of ['oct','quad','half']){
+        const t=decodeSector(gb,n,m);
+        if(t===null)continue;
+        const exp=expectSq(t,m,n);
+        if(exp&&matchStates(exp,st,n,hasGray))ok.push({mode:m,n,pad,text:t});}}}
+
+  for(const pad of [0,2])for(const w of [8,16,24,32]){
+    const TW=w+pad*2;if(IW%TW)continue;
+    const cell=IW/TW;if(IH%cell)continue;
+    if(mm>0&&Math.abs(cell-mm)>1&&Math.abs(cell-mm*2)>1)continue;
+    const TH=IH/cell,h=TH-pad*2;if(h<1||h>250)continue;
+    const g=readRow(TW,pad,w,h);
+    const t=rowDecode(g,w,h);
+    if(t===null)continue;
+    let mb=1;for(const c of t){const k=enc.encode(c).length;if(k>mb)mb=k}
+    if(mb*8!==w)continue;
+    const r=rowBuild(t,mb);
+    if(r.w!==w||r.h!==h)continue;
+    let same=true;
+    for(let i=0;i<w*h&&same;i++)if((r.g[i]?1:0)!==(g[i]?1:0))same=false;
+    if(same)ok.push({mode:'row',n:w,pad,text:t});}
+
+  ok.sort((x,y)=>(x.n+2*x.pad)-(y.n+2*y.pad)||[...y.text].length-[...x.text].length);
+  return ok;}
 
 function drawScanned(url){
   return new Promise(res=>{const im=new Image();
