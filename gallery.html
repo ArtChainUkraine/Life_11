@@ -218,6 +218,7 @@ function showError(status,detail){
   </div>`;
 }
 function renderGallery(items){
+  ALL_ITEMS=items;
   $('count').textContent=items.length===0?'поки порожньо':`${items.length} орнаментів`;
   if(!items.length){
     $('content').innerHTML=`<div class="empty">Галерея поки порожня.<br>
@@ -239,20 +240,39 @@ function renderGallery(items){
     grid.appendChild(card);
   });
   $('content').innerHTML='';$('content').appendChild(grid);
+  openFromURL();
 }
+let ALL_ITEMS=[];
 function openModal(rec){
   renderBytecode($('modal-cv'),rec);
   $('modal-word').textContent=rec.word;
   const modeLabel={oct:'×8',quad:'×4',half:'×2',row:'×1'}[rec.mode]||rec.mode;
   $('modal-meta').textContent=`симетрія ${modeLabel}${rec.layers===3?' · RGB':''}${rec.lang?' · '+rec.lang:''} · читабельний орнамент`;
   $('modal').classList.add('show');
+  /* свій адрес для цієї роботи */
+  if(rec.id!==undefined){
+    history.replaceState(null,'',`?id=${rec.id}`);
+    document.title=`«${rec.word}» — читабельний орнамент · taina`;
+  }
 }
-$('modal-close').onclick=()=>$('modal').classList.remove('show');
-$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('show')};
+function closeModal(){
+  $('modal').classList.remove('show');
+  history.replaceState(null,'',location.pathname);
+  document.title='Галерея читабельних орнаментів · taina';
+}
+$('modal-close').onclick=closeModal;
+$('modal').onclick=e=>{if(e.target===$('modal'))closeModal();};
 $('share-link').onclick=()=>{navigator.clipboard.writeText(location.href).then(()=>toast('Посилання скопійовано'));};
 let toastT;
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');
   clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('show'),2200);}
+/* якщо зайшли за прямим посиланням ?id=N — відкрити цю роботу */
+function openFromURL(){
+  const id=new URLSearchParams(location.search).get('id');
+  if(!id)return;
+  const rec=ALL_ITEMS.find(r=>String(r.id)===String(id));
+  if(rec)openModal(rec);
+}
 loadGallery();
 </script>
 </body>
