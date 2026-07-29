@@ -78,7 +78,7 @@ footer{border-top:1px solid var(--line);padding:26px 22px;text-align:center;font
 <header><div class="nav">
   <a href="#" class="mark">taina</a>
   <div class="navlinks">
-    <a href="lab.html" class="navlink">Лабораторія</a>
+    <a href="index.html" class="navlink">Лабораторія</a>
     <a href="#" class="navlink gold">Галерея</a>
   </div>
 </div></header>
@@ -97,7 +97,7 @@ footer{border-top:1px solid var(--line);padding:26px 22px;text-align:center;font
     <div class="mmeta" id="modal-meta"></div>
     <div class="share">
       <button id="share-link">🔗 Копіювати посилання</button>
-      <a href="lab.html" class="navlink" style="padding:10px 16px">✎ Створити свій</a>
+      <a href="index.html" class="navlink" style="padding:10px 16px">✎ Створити свій</a>
     </div>
   </div>
 </div>
@@ -221,7 +221,7 @@ function renderGallery(items){
   $('count').textContent=items.length===0?'поки порожньо':`${items.length} орнаментів`;
   if(!items.length){
     $('content').innerHTML=`<div class="empty">Галерея поки порожня.<br>
-      Будь першим — створи орнамент у <a href="lab.html" style="color:var(--acc)">лабораторії</a> і опублікуй.</div>`;
+      Будь першим — створи орнамент у <a href="index.html" style="color:var(--acc)">лабораторії</a> і опублікуй.</div>`;
     return;
   }
   const grid=document.createElement('div');grid.className='grid';
