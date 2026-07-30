@@ -56,7 +56,7 @@ header{border-bottom:1px solid var(--line);flex:0 0 auto;background:rgba(13,10,8
 .desc{font-size:13.5px;color:var(--muted);line-height:1.62}
 .desc b{color:var(--parchment);font-weight:600}
 
-.txtzone{width:100%;max-width:660px;min-height:186px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.txtzone{width:100%;max-width:660px;height:220px;display:flex;flex-direction:column;justify-content:center;gap:8px}
 .inrow{display:flex;align-items:flex-start;gap:9px}
 .chdot{width:11px;height:11px;border-radius:3px;flex:0 0 auto;opacity:.4;transition:.2s;margin-top:19px}
 .chdot.filled{opacity:1;box-shadow:0 0 9px currentColor}
@@ -171,8 +171,8 @@ input.inp.r,input.inp.g,input.inp.b{font-size:16px;padding:15px 18px;line-height
   background:transparent;cursor:pointer;color:var(--parchment);transition:.15s;line-height:1}
 .symtab.on{background:color-mix(in srgb,var(--acc) 18%,transparent);border-color:color-mix(in srgb,var(--acc) 42%,transparent)}
 .symtab:hover:not(.on){border-color:var(--acc-dim)}
-.symgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:none;overflow-y:auto;padding-right:4px}
-.symgrid button{padding:14px 6px;font-size:26px;line-height:1;border:1px solid var(--line);
+.symgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:340px;overflow-y:auto;padding-right:6px}
+.symgrid button{padding:16px 6px;font-size:34px;line-height:1;border:1px solid var(--line);
   border-radius:9px;background:transparent;cursor:pointer;color:var(--parchment);transition:.12s}
 .symgrid button:hover{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,transparent);transform:scale(1.06)}
 
@@ -868,13 +868,20 @@ function buildSymTabs(){
   Object.keys(SYMS).forEach(k=>{const b=document.createElement('button');
     b.className='symtab'+(k===curSym?' on':'');b.textContent=k;b.title=SYMS[k].name;
     b.onclick=()=>{curSym=k;buildSymTabs();buildSymGrid();};box.appendChild(b);});}
+let lastInput=null;
+['txt','t-0','t-1','t-2'].forEach(id=>{
+  const el=$(id);
+  if(el)el.addEventListener('focus',()=>lastInput=el);
+});
 function activeInput(){
   const a=document.activeElement;
   if(a&&a.classList&&a.classList.contains('inp'))return a;
+  if(lastInput&&lastInput.offsetParent!==null)return lastInput;  /* останнє активне, якщо видиме */
   return layers===3?$('t-0'):$('txt');}
 function buildSymGrid(){
   const box=$('symgrid');box.innerHTML='';
   SYMS[curSym].list.forEach(s=>{const b=document.createElement('button');b.type='button';b.textContent=s;
+    b.onmousedown=e=>e.preventDefault();  /* не забирати фокус з поля */
     b.onclick=()=>{const el=activeInput();
       el.value=[...el.value,s].join('').slice(0,200);
       el.dispatchEvent(new Event('input'));};
