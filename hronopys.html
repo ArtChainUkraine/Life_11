@@ -253,11 +253,13 @@ function buildGrid(t){
 const CV=$('cv'),CTX=CV.getContext('2d');
 const ONE='#e8d4a8',ZERO='#100b06',FRAME='#8f8f8f';
 let curUstav='';
+let lastGeom=null;   /* геометрія орнаменту для точного збереження */
 function renderCode(t){
-  if(!t){CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);return;}
+  if(!t){CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);lastGeom=null;return;}
   const {g,dm,n}=buildGrid(t);
   const pad=1,tw=n+pad*2,cell=Math.floor(CV.width/tw);
   const ox=Math.floor((CV.width-tw*cell)/2),oy=ox;
+  lastGeom={ox,oy,size:tw*cell};
   CTX.imageSmoothingEnabled=false;
   CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);
   CTX.fillStyle=FRAME;CTX.fillRect(ox,oy,tw*cell,tw*cell);
@@ -351,11 +353,13 @@ function update(){
 $('nameInput').oninput=update;
 
 $('savePng').onclick=()=>{
-  if(!curUstav){toast('Спершу напишіть ім\'я');return;}
-  const scale=2,ex=document.createElement('canvas');
-  ex.width=CV.width*scale;ex.height=CV.height*scale;
+  if(!curUstav||!lastGeom){toast('Спершу напишіть ім\'я');return;}
+  /* вирізаємо ЛИШЕ квадрат орнаменту (без полів) — щоб декодер міг сканувати */
+  const {ox,oy,size}=lastGeom;
+  const scale=3,ex=document.createElement('canvas');
+  ex.width=size*scale;ex.height=size*scale;
   const c=ex.getContext('2d');c.imageSmoothingEnabled=false;
-  c.drawImage(CV,0,0,ex.width,ex.height);
+  c.drawImage(CV, ox,oy,size,size, 0,0,ex.width,ex.height);
   ex.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);
     a.download='chronoscript_'+curUstav+'.png';a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Збережено');});
