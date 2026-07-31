@@ -35,7 +35,12 @@ header{border-bottom:1px solid var(--line);background:rgba(15,11,6,.9);backdrop-
   border:1px solid var(--line);border-radius:8px;text-transform:uppercase;transition:.15s;text-decoration:none}
 .roomtab:hover{color:var(--acc-hot);border-color:var(--acc-dim)}
 .roomtab.on{color:var(--acc-hot);border-color:rgba(201,162,103,.5);background:rgba(201,162,103,.12)}
-.navright{margin-left:auto;display:flex;gap:6px}
+.navright{margin-left:auto;display:flex;gap:10px;align-items:center}
+.theme-pick{display:flex;gap:5px;align-items:center}
+.theme-pick button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;
+  padding:0;transition:.15s}
+.theme-pick button:hover{transform:scale(1.15)}
+.theme-pick button.on{border-color:var(--parchment);box-shadow:0 0 8px rgba(255,255,255,.3)}
 .navlink{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);padding:8px 13px;
   border:1px solid var(--line);border-radius:8px;text-transform:uppercase;transition:.15s;text-decoration:none}
 .navlink:hover{color:var(--acc-hot);border-color:var(--acc-dim)}
@@ -128,6 +133,7 @@ header{border-bottom:1px solid var(--line);background:rgba(15,11,6,.9);backdrop-
     <a href="#" class="roomtab on">ChronoScript</a>
   </div>
   <div class="navright">
+    <div class="theme-pick" id="themePick" title="Колір кімнати"></div>
     <a href="gallery.html" class="navlink">Галерея</a>
   </div>
 </div></header>
@@ -201,7 +207,11 @@ const SIGNSET=new Set([
   '🜍','🜔','🜂','🜄','🜁','🜃','🜚','☿',
   '☉','☽','♂','♀','♃','♄','♆','♇',
   'ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᛟ','ᛞ',
-  '⁂','❦','❧','⁕','⸙','⳥','⁘','⁙','·']);
+  '⁂','❦','❧','⁕','⸙','⳥','⁘','⁙','·',
+  '☯','☤','⚕','⚚','☸','۞','🝞','🜮','🝔','🜛',
+  '❖','◈','⬡','⬢','⧉','⌘','⎔','◉','⊚','⟁','⌬',
+  '❄','❆','⚡','☄','✦','✪','⊛','❃','❉','✼',
+  '⚜','⁜','※','⧊','⟐','⬥','❊','⌗','⯏']);
 function toUstav(name){
   if(!name)return {text:''};
   const raw=name.trim();
@@ -222,7 +232,9 @@ function toUstav(name){
   }
   let out=res.join('');
   const last=out[out.length-1]||'';
-  if(last&&!vowels.has(last)&&!'ъьй'.includes(last))out+='ъ';
+  /* Ъ лише після кириличної приголосної — не після цифр, латиниці, знаків */
+  const isCyrLetter=/[а-яґєіїёѐ-ӿ]/i.test(last);
+  if(last&&isCyrLetter&&!vowels.has(last)&&!'ъьй'.includes(last))out+='ъ';
   return {text:out.toUpperCase()+trailing};
 }
 function breakdown(text){
@@ -251,17 +263,25 @@ function buildGrid(t){
     for(const [X,Y] of mirrors(n,x,y)){dm[Y*n+X]=1;if(bits[i])g[Y*n+X]=1}}
   return {g,dm,n};}
 const CV=$('cv'),CTX=CV.getContext('2d');
-const ONE='#e8d4a8',ZERO='#100b06',FRAME='#8f8f8f';
+function themeColors(){
+  const cs=getComputedStyle(document.documentElement);
+  return {
+    ONE:cs.getPropertyValue('--ustav').trim()||'#e8d4a8',
+    ZERO:'#100b06',
+    FRAME:'#8f8f8f'
+  };
+}
 let curUstav='';
-let lastGeom=null;   /* геометрія орнаменту для точного збереження */
+let lastGeom=null;
 function renderCode(t){
-  if(!t){CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);lastGeom=null;return;}
+  const {ONE,ZERO,FRAME}=themeColors();
+  if(!t){CTX.fillStyle=ZERO;CTX.fillRect(0,0,CV.width,CV.height);lastGeom=null;return;}
   const {g,dm,n}=buildGrid(t);
   const pad=1,tw=n+pad*2,cell=Math.floor(CV.width/tw);
   const ox=Math.floor((CV.width-tw*cell)/2),oy=ox;
   lastGeom={ox,oy,size:tw*cell};
   CTX.imageSmoothingEnabled=false;
-  CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);
+  CTX.fillStyle=ZERO;CTX.fillRect(0,0,CV.width,CV.height);
   CTX.fillStyle=FRAME;CTX.fillRect(ox,oy,tw*cell,tw*cell);
   CTX.fillStyle=ZERO;CTX.fillRect(ox+pad*cell,oy+pad*cell,n*cell,n*cell);
   for(let y=0;y<n;y++)for(let x=0;x<n;x++){const i=y*n+x;if(!dm[i]||!g[i])continue;
@@ -308,6 +328,27 @@ const SIGN_GROUPS={
     ['⁂','астеризм — три зорі'],['❦','рослинний декор'],['❧','листок-розділювач'],
     ['⁕','квіткова зірочка'],['⸙','листкова розетка'],['⳥','коптський орнамент'],
     ['⁘','чотириточчя'],['⁙','п’ятиточчя'],
+  ]},
+  '☯':{name:'магічні',info:'знаки різних традицій — культурні символи, не заклинання',list:[
+    ['☯','інь-ян — рівновага (даосизм)'],['☤','кадуцей — жезл торгівлі'],['⚕','жезл Асклепія — медицина'],
+    ['⚚','жезл Гермеса'],['☸','колесо дгарми (буддизм)'],['۞','арабська розета'],
+    ['🝞','«філософський камінь» (алхімія)'],['🜮','купорос (алхімія)'],['🝔','амальгама (алхімія)'],
+    ['🜛','магній (алхімія)'],
+  ]},
+  '❖':{name:'геометрія',info:'геометричні та мандальні знаки',list:[
+    ['❖','ромб-квітка'],['◈','ромб у ромбі'],['⬡','шестикутник'],['⬢','заповнений шестикутник'],
+    ['⧉','квадрати'],['⌘','вузол нескінченності'],['⎔','сота'],['◉','коло в колі'],
+    ['⊚','подвійне коло'],['⟁','трикутник'],['⌬','кільце'],
+  ]},
+  '❄':{name:'стихії й небо',info:'сніжинки, зорі, небесні знаки',list:[
+    ['❄','сніжинка'],['❆','густа сніжинка'],['⚡','блискавка'],['☄','комета'],
+    ['✦','чотирипроменева зоря'],['✪','зоря в колі'],['❂','сонце-розетка'],['⊛','зоря в колі'],
+    ['✵','вихрова зоря'],['❃','квіткова зоря'],['❉','зоря-квітка'],['✼','відкрита зоря'],
+  ]},
+  '⚜':{name:'знаки сили',info:'геральдичні та захисні символи',list:[
+    ['⚜','флер-де-ліс — королівська лілія'],['⁜','хрест із крапками'],['※','квітковий знак'],
+    ['⧊','трикутник у колі'],['⟐','ромб у колі'],['⬥','ромб'],['❊','вісім пелюсток'],
+    ['⌗','решітка'],['⯏','зоряний знак'],
   ]},
 };
 let curSign='Ѧ';
@@ -368,9 +409,43 @@ let toastT;
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');
   clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('show'),2200);}
 
+/* ═══════ ПАЛІТРА КІМНАТ ═══════ */
+const THEMES={
+  'глина':  {acc:'#c9a267',hot:'#e6c584',dim:'#8a6d42',ink:'#0f0b06',panel:'#1a130a',panel2:'#241a0e',line:'rgba(201,162,103,.22)',parch:'#efe4cf',muted:'#9d876a',ustav:'#e8d4a8'},
+  'смарагд':{acc:'#5ec98a',hot:'#8fe6b0',dim:'#3f8a5f',ink:'#06100b',panel:'#0a1a12',panel2:'#0e2418',line:'rgba(94,201,138,.22)',parch:'#d8f0e2',muted:'#7aa88f',ustav:'#c0e8d0'},
+  'аметист':{acc:'#b088e0',hot:'#cba8ff',dim:'#7a5aa0',ink:'#0d0812',panel:'#160f22',panel2:'#1e1430',line:'rgba(176,136,224,.22)',parch:'#e8ddf5',muted:'#a08bc0',ustav:'#dcc8f0'},
+  'бурштин':{acc:'#e0a030',hot:'#ffc860',dim:'#a07420',ink:'#100a04',panel:'#1c1408',panel2:'#281c0c',line:'rgba(224,160,48,.22)',parch:'#f5e6c8',muted:'#b09560',ustav:'#f0d8a0'},
+  'графіт': {acc:'#a0b0c0',hot:'#d0e0f0',dim:'#6a7a8a',ink:'#0a0c0e',panel:'#141820',panel2:'#1c2430',line:'rgba(160,176,192,.22)',parch:'#e0e6ec',muted:'#8a95a0',ustav:'#d0dae4'},
+  'рубін':  {acc:'#e07080',hot:'#ff9aa8',dim:'#a04a58',ink:'#120608',panel:'#200c10',panel2:'#2c1016',line:'rgba(224,112,128,.22)',parch:'#f5dde0',muted:'#c08b92',ustav:'#f0c8ce'},
+};
+function applyTheme(name){
+  const t=THEMES[name]||THEMES['глина'];
+  const r=document.documentElement.style;
+  r.setProperty('--acc',t.acc);r.setProperty('--acc-hot',t.hot);r.setProperty('--acc-dim',t.dim);
+  r.setProperty('--ink',t.ink);r.setProperty('--panel',t.panel);r.setProperty('--panel2',t.panel2);
+  r.setProperty('--line',t.line);r.setProperty('--parchment',t.parch);r.setProperty('--muted',t.muted);
+  r.setProperty('--ustav',t.ustav);
+  try{localStorage.setItem('taina_theme',name);}catch(e){}
+  [...$('themePick').children].forEach(b=>b.classList.toggle('on',b.dataset.t===name));
+  if(typeof update==='function')update();
+}
+function buildThemes(){
+  const box=$('themePick');box.innerHTML='';
+  Object.keys(THEMES).forEach(name=>{
+    const t=THEMES[name];
+    const b=document.createElement('button');b.dataset.t=name;b.title=name;
+    b.style.background=t.acc;
+    b.onclick=()=>applyTheme(name);
+    box.appendChild(b);
+  });
+}
+let savedTheme='глина';
+try{savedTheme=localStorage.getItem('taina_theme')||'глина';}catch(e){}
+buildThemes();
+applyTheme(savedTheme);
+
 /* старт */
 buildSymTabs();buildSymGrid();
-$('nameInput').value='Володимир';
 update();
 </script>
 </body>
