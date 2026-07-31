@@ -99,6 +99,8 @@ header{border-bottom:1px solid var(--line);background:rgba(15,11,6,.9);backdrop-
 .symgrid button{padding:12px 4px;font-size:26px;line-height:1;border:1px solid var(--line);
   border-radius:9px;background:transparent;cursor:pointer;color:var(--ustav);transition:.12s;font-family:var(--serif)}
 .symgrid button:hover{border-color:var(--acc);background:rgba(201,162,103,.1);transform:scale(1.08)}
+.sym-info{font-family:var(--mono);font-size:11px;color:var(--acc);letter-spacing:.03em;padding:6px 2px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.sym-note{font-family:var(--mono);font-size:10px;color:var(--acc-dim);line-height:1.55;margin-top:4px}
 
 .disclaimer{font-family:var(--mono);font-size:11px;color:var(--acc-dim);line-height:1.6;
   border-top:1px solid var(--line);padding-top:14px}
@@ -167,7 +169,9 @@ header{border-bottom:1px solid var(--line);background:rgba(15,11,6,.9);backdrop-
     <div class="grp">
       <div class="sec-t">Давні знаки</div>
       <div class="symtabs" id="symtabs"></div>
+      <div class="sym-info" id="symInfo"></div>
       <div class="symgrid" id="symgrid"></div>
+      <div class="sym-note">Наведіть на знак — з’явиться пояснення. Знаки з різних культур; це художній набір, а не система заклять.</div>
     </div>
   </aside>
 
@@ -189,9 +193,15 @@ const CHAR_INFO={
   'Ь':'єрь — м’який надкороткий голосний',
   'Ї':'ї — йотований і',
 };
-const SIGNSET=new Set(['Ꙗ','Ѧ','Ѩ','Ѣ','Ѥ','Ѯ','Ѱ','Ѳ','Ѵ','Ѡ','Ѫ','Ѭ','Ъ','Ь','Ѕ','Ꙑ',
-  '☦','✙','✚','✠','⳨','☩','☨','☀','❂','⊕','✻','✽','✶','✵','❋','✳',
-  '⁘','⁙','⁝','❦','⁂','·','Ⰰ','Ⰱ','Ⰲ','Ⰳ','Ⱄ','Ⱅ','Ⱛ']);
+const SIGNSET=new Set([
+  'Ꙗ','Ѧ','Ѩ','Ѣ','Ѥ','Ѯ','Ѱ','Ѳ','Ѵ','Ѡ','Ѫ','Ѭ','Ъ','Ь','Ѕ','Ꙑ',
+  'Ⰰ','Ⰱ','Ⰲ','Ⰳ','Ⰴ','Ⰵ','Ⱄ','Ⱅ','Ⱋ','Ⱛ',
+  '☦','✙','✚','✠','⳨','☩','☨',
+  '☀','❂','⊕','✶','✷','✺','❋','✵','✳',
+  '🜍','🜔','🜂','🜄','🜁','🜃','🜚','☿',
+  '☉','☽','♂','♀','♃','♄','♆','♇',
+  'ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᛟ','ᛞ',
+  '⁂','❦','❧','⁕','⸙','⳥','⁘','⁙','·']);
 function toUstav(name){
   if(!name)return {text:''};
   const raw=name.trim();
@@ -258,28 +268,66 @@ function renderCode(t){
 
 /* ═══════ ЗНАКИ (права панель) ═══════ */
 const SIGN_GROUPS={
-  'Ѧ':{name:'архаїчні',list:[...'ꙖѦѨѢѤѮѰѲѴѠѪѬЪЬЅꙐ']},
-  '☦':{name:'хрести',list:[...'☦✙✚✠⳨☩☨']},
-  '☀':{name:'сонце',list:[...'☀❂⊕✻✽✶✵❋✳']},
-  'Ⰰ':{name:'глаголиця',list:[...'ⰀⰁⰂⰃⰄⰅⰆⰇⰈⰉⰊⰋⰌⰍⰎⰏⰐⰑⰒⰓⰔⰕⰖⰗⰘⰙⰚⰛ']},
-  '⁘':{name:'розділ.',list:[...'⁘⁙⁝❦⁂·']},
+  'Ѧ':{name:'слов’янські літери',info:'давні кириличні літери уставу',list:[
+    ['Ѧ','юс малий — давня кирилична літера, носовий [ę]'],
+    ['Ꙗ','йотований аз — [йа]'],['Ѣ','ять — давній голосний'],
+    ['Ѫ','юс великий — носовий [ǫ]'],['Ѡ','омега — з грецької'],
+    ['Ѱ','псі — [пс], з грецької'],['Ѯ','ксі — [кс], з грецької'],
+    ['Ѳ','фіта — [ф], у грецьких словах'],['Ѵ','іжиця — з грецької іпсилон'],
+  ]},
+  'Ⰰ':{name:'глаголиця',info:'найдавніша слов’янська абетка (IX ст.)',list:[
+    ['Ⰰ','аз — перша літера глаголиці'],['Ⰱ','буки'],['Ⰲ','веді'],['Ⰳ','глаголь'],
+    ['Ⰴ','добро'],['Ⰵ','єсть'],['Ⱄ','слово'],['Ⱅ','твердо'],['Ⱋ','ща'],['Ⱛ','іжиця'],
+  ]},
+  '☦':{name:'хрести',info:'християнські хрести різних традицій',list:[
+    ['☦','православний хрест'],['✙','грецький хрест'],['✚','потовщений хрест'],
+    ['✠','мальтійський хрест'],['☩','хрест з опертям'],['⳨','коптський хрест'],
+    ['☨','патріарший хрест'],
+  ]},
+  '☀':{name:'сонце й зорі',info:'солярні символи та зорі',list:[
+    ['☀','сонце'],['❂','сонячна розетка'],['⊕','сонячний хрест (коло з хрестом)'],
+    ['✶','шестипроменева зоря'],['✷','восьмипроменева зоря'],['✺','зоря-квітка'],
+    ['❋','квіткова розетка'],['✵','обертова зоря'],['✳','зірка-розетка'],
+  ]},
+  '🜍':{name:'алхімія',info:'алхімічні знаки стихій та речовин',list:[
+    ['🜍','сірка — алхімічний знак'],['🜔','сіль'],['🜂','вогонь'],['🜄','вода'],
+    ['🜁','повітря'],['🜃','земля'],['🜚','золото / сонце'],['☿','ртуть / Меркурій'],
+  ]},
+  '☉':{name:'астрологія',info:'планетні символи',list:[
+    ['☉','Сонце'],['☽','Місяць'],['♂','Марс'],['♀','Венера'],['♃','Юпітер'],
+    ['♄','Сатурн'],['♆','Нептун'],['♇','Плутон'],
+  ]},
+  'ᚠ':{name:'руни',info:'руни старшого футарку (германські)',list:[
+    ['ᚠ','феху — достаток'],['ᚢ','уруз — сила'],['ᚦ','турісаз — захист'],['ᚨ','ансуз — слово'],
+    ['ᚱ','райдо — дорога'],['ᚲ','кеназ — факел'],['ᚷ','ґебо — дар'],['ᚹ','вуньйо — радість'],
+    ['ᛟ','отал — спадок'],['ᛞ','даґаз — день'],
+  ]},
+  '⁂':{name:'орнамент',info:'декоративні знаки та розділювачі',list:[
+    ['⁂','астеризм — три зорі'],['❦','рослинний декор'],['❧','листок-розділювач'],
+    ['⁕','квіткова зірочка'],['⸙','листкова розетка'],['⳥','коптський орнамент'],
+    ['⁘','чотириточчя'],['⁙','п’ятиточчя'],
+  ]},
 };
 let curSign='Ѧ';
 function buildSymTabs(){
   const box=$('symtabs');box.innerHTML='';
   Object.keys(SIGN_GROUPS).forEach(k=>{
+    const g=SIGN_GROUPS[k];
     const b=document.createElement('button');b.className='symtab'+(k===curSign?' on':'');
-    b.textContent=k;b.title=SIGN_GROUPS[k].name;
-    b.onclick=()=>{curSign=k;buildSymTabs();buildSymGrid();};
+    b.textContent=k;b.title=g.name+' — '+g.info;
+    b.onclick=()=>{curSign=k;buildSymTabs();buildSymGrid();$('symInfo').textContent=g.info;};
     box.appendChild(b);
   });
+  $('symInfo').textContent=SIGN_GROUPS[curSign].info;
 }
 function buildSymGrid(){
   const box=$('symgrid');box.innerHTML='';
-  SIGN_GROUPS[curSign].list.forEach(s=>{
+  SIGN_GROUPS[curSign].list.forEach(([s,desc])=>{
     const b=document.createElement('button');b.type='button';b.textContent=s;
+    b.title=desc;
     b.onmousedown=e=>e.preventDefault();
-    b.onclick=()=>{const el=$('nameInput');el.value=(el.value+s).slice(0,40);el.focus();update();};
+    b.onclick=()=>{const el=$('nameInput');el.value=(el.value+s).slice(0,40);el.focus();update();
+      toast(s+' · '+desc);};
     box.appendChild(b);
   });
 }
