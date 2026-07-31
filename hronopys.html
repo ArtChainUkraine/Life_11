@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChronoScript · taina</title>
+<meta name="description" content="ChronoScript — показує, як сучасне ім'я могло б виглядати уставним письмом XI століття, та перетворює його на читабельний орнамент. Художня реконструкція.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f0b06;--panel:#1a130a;--panel2:#241a0e;
+  --acc:#c9a267;--acc-hot:#e6c584;--acc-dim:#8a6d42;
+  --parchment:#efe4cf;--muted:#9d876a;--line:rgba(201,162,103,.22);
+  --ok:#8fbf6a;--ustav:#e8d4a8;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',system-ui,sans-serif;--serif:'PT Serif',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--ink);color:var(--parchment);font-family:var(--sans);line-height:1.5;
+  background-image:radial-gradient(ellipse 70% 50% at 50% -8%,rgba(201,162,103,.1),transparent);
+  display:flex;flex-direction:column;min-height:100vh}
+button{font-family:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc-hot);outline-offset:2px}
+.hide{display:none!important}
+
+header{border-bottom:1px solid var(--line);background:rgba(15,11,6,.9);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:60}
+.nav{display:flex;align-items:center;gap:12px;height:56px;max-width:1660px;margin:0 auto;padding:0 22px}
+.mark{font-family:var(--mono);font-weight:700;font-size:18px;letter-spacing:.07em;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--parchment)}
+.mark::after{content:'';width:7px;height:7px;background:var(--acc)}
+.roomtabs{display:flex;gap:6px;margin-left:8px}
+.roomtab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);padding:8px 13px;
+  border:1px solid var(--line);border-radius:8px;text-transform:uppercase;transition:.15s;text-decoration:none}
+.roomtab:hover{color:var(--acc-hot);border-color:var(--acc-dim)}
+.roomtab.on{color:var(--acc-hot);border-color:rgba(201,162,103,.5);background:rgba(201,162,103,.12)}
+.navright{margin-left:auto;display:flex;gap:6px}
+.navlink{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);padding:8px 13px;
+  border:1px solid var(--line);border-radius:8px;text-transform:uppercase;transition:.15s;text-decoration:none}
+.navlink:hover{color:var(--acc-hot);border-color:var(--acc-dim)}
+
+.app{flex:1 1 auto;display:grid;grid-template-columns:340px minmax(0,1fr) 350px;max-width:1660px;width:100%;margin:0 auto}
+.side{padding:24px 26px;display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.side.left{border-right:1px solid var(--line)}
+.side.right{border-left:1px solid var(--line)}
+.center{display:flex;flex-direction:column;align-items:center;padding:22px 24px 26px;gap:16px;min-width:0}
+
+.sec-t{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;color:var(--acc-dim);
+  text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.sec-t::before{content:'';width:5px;height:5px;background:var(--acc);flex:0 0 auto}
+.grp{display:flex;flex-direction:column;gap:10px}
+.desc{font-size:13.5px;color:var(--muted);line-height:1.62}
+.desc b{color:var(--parchment);font-weight:600}
+
+/* дві зони тексту */
+.txtzone{width:100%;max-width:600px;display:flex;flex-direction:column;gap:12px}
+.field-lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--acc-dim);
+  text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.field-lbl::before{content:'';width:4px;height:4px;background:var(--acc)}
+#nameInput{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  color:var(--parchment);font-family:var(--serif);font-size:22px;padding:15px 18px;outline:none;
+  text-align:center;letter-spacing:.02em;transition:.2s}
+#nameInput:focus{border-color:var(--acc);box-shadow:0 0 24px rgba(201,162,103,.16)}
+#nameInput::placeholder{color:var(--acc-dim);font-style:italic}
+.ustav-out{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:13px;
+  padding:18px;min-height:74px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.ustav-out::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,rgba(201,162,103,.06),transparent 70%);pointer-events:none}
+.ustav-text{font-family:var(--serif);font-size:clamp(24px,4.5vw,38px);font-weight:700;
+  color:var(--ustav);letter-spacing:.05em;text-align:center;line-height:1.25;
+  text-shadow:0 2px 12px rgba(232,212,168,.15)}
+.ustav-text .ch{opacity:0;display:inline-block;transform:translateY(6px);animation:inkflow .5s ease forwards}
+@keyframes inkflow{to{opacity:1;transform:translateY(0)}}
+
+.stage{width:100%;max-width:min(46vh,400px);aspect-ratio:1;background:#0a0704;
+  border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 16px 46px rgba(0,0,0,.5);flex:0 0 auto}
+.stage canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+.actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+.b{font-family:var(--mono);font-size:12.5px;font-weight:600;padding:12px 18px;border-radius:11px;
+  border:1px solid var(--line);cursor:pointer;background:transparent;color:var(--muted);transition:.15s}
+.b:hover{color:var(--acc-hot);border-color:var(--acc-dim)}
+.b.gold{background:linear-gradient(160deg,rgba(201,162,103,.26),rgba(201,162,103,.1));
+  border-color:rgba(201,162,103,.5);color:var(--acc-hot)}
+
+/* розбір букв — ліва панель */
+.breakdown{display:flex;flex-direction:column;gap:7px}
+.bch{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;background:var(--panel);line-height:1.4}
+.bch b{color:var(--ustav);font-family:var(--serif);font-size:17px;margin-right:7px}
+
+/* панель знаків — права */
+.symtabs{display:flex;gap:6px;flex-wrap:wrap}
+.symtab{font-family:var(--serif);font-size:18px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;
+  background:transparent;cursor:pointer;color:var(--ustav);transition:.15s;line-height:1}
+.symtab.on{background:rgba(201,162,103,.16);border-color:rgba(201,162,103,.42)}
+.symtab:hover:not(.on){border-color:var(--acc-dim)}
+.symgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:360px;overflow-y:auto;padding-right:5px}
+.symgrid button{padding:12px 4px;font-size:26px;line-height:1;border:1px solid var(--line);
+  border-radius:9px;background:transparent;cursor:pointer;color:var(--ustav);transition:.12s;font-family:var(--serif)}
+.symgrid button:hover{border-color:var(--acc);background:rgba(201,162,103,.1);transform:scale(1.08)}
+
+.disclaimer{font-family:var(--mono);font-size:11px;color:var(--acc-dim);line-height:1.6;
+  border-top:1px solid var(--line);padding-top:14px}
+.disclaimer b{color:var(--muted)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel2);border:1px solid var(--acc-dim);border-radius:11px;padding:12px 20px;
+  font-family:var(--mono);font-size:13px;color:var(--acc-hot);opacity:0;pointer-events:none;transition:.3s;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:1060px){
+  .app{grid-template-columns:1fr;max-width:600px}
+  .side{border:0!important;border-top:1px solid var(--line)!important;order:3}
+  .side.left{order:2}.center{order:1}.side.right{order:3}
+  .stage{max-width:min(72vw,360px)}
+}
+</style>
+</head>
+<body>
+
+<header><div class="nav">
+  <a href="index.html" class="mark">taina</a>
+  <div class="roomtabs">
+    <a href="index.html" class="roomtab">лабораторія байткоду</a>
+    <a href="#" class="roomtab on">ChronoScript</a>
+  </div>
+  <div class="navright">
+    <a href="gallery.html" class="navlink">Галерея</a>
+  </div>
+</div></header>
+
+<div class="app">
+
+  <aside class="side left">
+    <div class="grp">
+      <div class="sec-t">Розбір письма</div>
+      <p class="desc">Які архаїчні літери проявились у давньому написанні.</p>
+      <div class="breakdown" id="breakdown"></div>
+    </div>
+    <div class="disclaimer">
+      ⚠ <b>Художня реконструкція.</b> Показане написання — можливий варіант у стилі уставу XI ст.,
+      а не історичний документ. Для більшості сучасних імен точна давня форма невідома.
+    </div>
+  </aside>
+
+  <main class="center">
+    <div class="txtzone">
+      <div>
+        <div class="field-lbl">Сучасний текст</div>
+        <input type="text" id="nameInput" maxlength="40" placeholder="напишіть ім'я…" autocomplete="off" spellcheck="false">
+      </div>
+      <div>
+        <div class="field-lbl">ChronoScript · устав XI ст.</div>
+        <div class="ustav-out"><div class="ustav-text" id="ustavText"></div></div>
+      </div>
+    </div>
+
+    <div class="stage"><canvas id="cv" width="512" height="512"></canvas></div>
+
+    <div class="actions">
+      <button class="b gold" id="savePng">⤓ Зберегти PNG</button>
+    </div>
+  </main>
+
+  <aside class="side right">
+    <div class="grp">
+      <div class="sec-t">Давні знаки</div>
+      <div class="symtabs" id="symtabs"></div>
+      <div class="symgrid" id="symgrid"></div>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const enc=new TextEncoder();
+
+/* ═══════ УСТАВ XI ст. ═══════ */
+const CHAR_INFO={
+  'Ѧ':'юс малий — етимологічний носовий, до XI ст. читався [’а]',
+  'ОУ':'диграф «ук» — так передавали звук [у]',
+  'Є':'єсть широке — звичайна форма літери Е',
+  'І':'і десятеричне — перед голосними та в грецизмах',
+  'Ъ':'єр — колишній надкороткий голосний після кінцевого приголосного',
+  'Ь':'єрь — м’який надкороткий голосний',
+  'Ї':'ї — йотований і',
+};
+const SIGNSET=new Set(['Ꙗ','Ѧ','Ѩ','Ѣ','Ѥ','Ѯ','Ѱ','Ѳ','Ѵ','Ѡ','Ѫ','Ѭ','Ъ','Ь','Ѕ','Ꙑ',
+  '☦','✙','✚','✠','⳨','☩','☨','☀','❂','⊕','✻','✽','✶','✵','❋','✳',
+  '⁘','⁙','⁝','❦','⁂','·','Ⰰ','Ⰱ','Ⰲ','Ⰳ','Ⱄ','Ⱅ','Ⱛ']);
+function toUstav(name){
+  if(!name)return {text:''};
+  const raw=name.trim();
+  let letters='',trailing='';
+  for(const ch of raw){ if(SIGNSET.has(ch))trailing+=ch; else letters+=ch; }
+  const low=letters.toLowerCase();
+  const chars=[...low], n=chars.length;
+  const vowels=new Set('аеєиіїоуюяѧ');
+  const res=[];
+  for(let idx=0;idx<n;idx++){
+    const ch=chars[idx], nxt=chars[idx+1]||'';
+    if(ch==='у'){res.push('оу');continue;}
+    if(ch==='я'){res.push('ѧ');continue;}
+    if(ch==='е'||ch==='є'){res.push('є');continue;}
+    if(ch==='и'){res.push(vowels.has(nxt)?'і':'и');continue;}
+    if(ch==='і'){res.push('і');continue;}
+    res.push(ch);
+  }
+  let out=res.join('');
+  const last=out[out.length-1]||'';
+  if(last&&!vowels.has(last)&&!'ъьй'.includes(last))out+='ъ';
+  return {text:out.toUpperCase()+trailing};
+}
+function breakdown(text){
+  const found=[];const seen=new Set();
+  if(text.includes('ОУ')){found.push(['ОУ',CHAR_INFO['ОУ']]);seen.add('ОУ');}
+  for(const ch of text){ if(CHAR_INFO[ch]&&!seen.has(ch)){found.push([ch,CHAR_INFO[ch]]);seen.add(ch);} }
+  return found;
+}
+
+/* ═══════ ЯДРО БАЙТКОДУ ═══════ */
+const MINN=7,MAXN=145;
+function Rof(n){return (n-1)/2}
+function capacity(n){const R=Rof(n);return (R+1)*(R+2)/2;}
+function baseCells(n){const c=Rof(n),R=c,o=[];for(let i=0;i<=R;i++)for(let j=0;j<=i;j++)o.push([c+i,c+j]);return o;}
+function mirrors(n,x,y){const c=Rof(n),i=x-c,j=y-c;
+  const p=[[i,j],[j,i],[-i,j],[-j,i],[i,-j],[j,-i],[-i,-j],[-j,-i]];
+  const o=[];for(const [a,b] of p){const X=c+a,Y=c+b;if(X>=0&&Y>=0&&X<n&&Y<n)o.push([X,Y])}return o;}
+function pickN(need){for(let n=MINN;n<=MAXN;n+=2)if(capacity(n)>=need)return n;return MAXN;}
+function textBits(t){const d=enc.encode(t);const bits=new Uint8Array(d.length*8);
+  for(let i=0;i<d.length;i++)for(let b=0;b<8;b++)bits[i*8+b]=(d[i]>>(7-b))&1;return bits;}
+function buildGrid(t){
+  const bits=textBits(t);const n=pickN(bits.length);
+  const g=new Uint8Array(n*n),dm=new Uint8Array(n*n),bc=baseCells(n);
+  const lim=Math.min(bits.length,bc.length);
+  for(let i=0;i<lim;i++){const [x,y]=bc[i];
+    for(const [X,Y] of mirrors(n,x,y)){dm[Y*n+X]=1;if(bits[i])g[Y*n+X]=1}}
+  return {g,dm,n};}
+const CV=$('cv'),CTX=CV.getContext('2d');
+const ONE='#e8d4a8',ZERO='#100b06',FRAME='#8f8f8f';
+let curUstav='';
+function renderCode(t){
+  if(!t){CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);return;}
+  const {g,dm,n}=buildGrid(t);
+  const pad=1,tw=n+pad*2,cell=Math.floor(CV.width/tw);
+  const ox=Math.floor((CV.width-tw*cell)/2),oy=ox;
+  CTX.imageSmoothingEnabled=false;
+  CTX.fillStyle='#0a0704';CTX.fillRect(0,0,CV.width,CV.height);
+  CTX.fillStyle=FRAME;CTX.fillRect(ox,oy,tw*cell,tw*cell);
+  CTX.fillStyle=ZERO;CTX.fillRect(ox+pad*cell,oy+pad*cell,n*cell,n*cell);
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){const i=y*n+x;if(!dm[i]||!g[i])continue;
+    CTX.fillStyle=ONE;CTX.fillRect(ox+(x+pad)*cell,oy+(y+pad)*cell,cell,cell);}
+}
+
+/* ═══════ ЗНАКИ (права панель) ═══════ */
+const SIGN_GROUPS={
+  'Ѧ':{name:'архаїчні',list:[...'ꙖѦѨѢѤѮѰѲѴѠѪѬЪЬЅꙐ']},
+  '☦':{name:'хрести',list:[...'☦✙✚✠⳨☩☨']},
+  '☀':{name:'сонце',list:[...'☀❂⊕✻✽✶✵❋✳']},
+  'Ⰰ':{name:'глаголиця',list:[...'ⰀⰁⰂⰃⰄⰅⰆⰇⰈⰉⰊⰋⰌⰍⰎⰏⰐⰑⰒⰓⰔⰕⰖⰗⰘⰙⰚⰛ']},
+  '⁘':{name:'розділ.',list:[...'⁘⁙⁝❦⁂·']},
+};
+let curSign='Ѧ';
+function buildSymTabs(){
+  const box=$('symtabs');box.innerHTML='';
+  Object.keys(SIGN_GROUPS).forEach(k=>{
+    const b=document.createElement('button');b.className='symtab'+(k===curSign?' on':'');
+    b.textContent=k;b.title=SIGN_GROUPS[k].name;
+    b.onclick=()=>{curSign=k;buildSymTabs();buildSymGrid();};
+    box.appendChild(b);
+  });
+}
+function buildSymGrid(){
+  const box=$('symgrid');box.innerHTML='';
+  SIGN_GROUPS[curSign].list.forEach(s=>{
+    const b=document.createElement('button');b.type='button';b.textContent=s;
+    b.onmousedown=e=>e.preventDefault();
+    b.onclick=()=>{const el=$('nameInput');el.value=(el.value+s).slice(0,40);el.focus();update();};
+    box.appendChild(b);
+  });
+}
+
+/* ═══════ ОНОВЛЕННЯ ═══════ */
+let renderTimer=null;
+function update(){
+  const {text}=toUstav($('nameInput').value);
+  curUstav=text;
+  const zone=$('ustavText');zone.innerHTML='';
+  [...text].forEach((ch,i)=>{
+    const span=document.createElement('span');span.className='ch';span.textContent=ch;
+    span.style.animationDelay=(i*0.05)+'s';zone.appendChild(span);
+  });
+  const bd=breakdown(text);const box=$('breakdown');box.innerHTML='';
+  if(!bd.length){box.innerHTML='<div class="bch" style="color:var(--acc-dim)">напишіть імʼя — тут зʼявиться розбір архаїчних літер</div>';}
+  bd.forEach(([ch,info])=>{const el=document.createElement('div');el.className='bch';
+    el.innerHTML='<b>'+ch+'</b>'+info;box.appendChild(el);});
+  clearTimeout(renderTimer);renderTimer=setTimeout(()=>renderCode(text),240);
+}
+$('nameInput').oninput=update;
+
+$('savePng').onclick=()=>{
+  if(!curUstav){toast('Спершу напишіть ім\'я');return;}
+  const scale=2,ex=document.createElement('canvas');
+  ex.width=CV.width*scale;ex.height=CV.height*scale;
+  const c=ex.getContext('2d');c.imageSmoothingEnabled=false;
+  c.drawImage(CV,0,0,ex.width,ex.height);
+  ex.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);
+    a.download='chronoscript_'+curUstav+'.png';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Збережено');});
+};
+let toastT;
+function toast(m){$('toast').textContent=m;$('toast').classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('show'),2200);}
+
+/* старт */
+buildSymTabs();buildSymGrid();
+$('nameInput').value='Володимир';
+update();
+</script>
+</body>
+</html>
