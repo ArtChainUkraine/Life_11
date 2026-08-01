@@ -177,6 +177,9 @@ input.inp.r,input.inp.g,input.inp.b{font-size:16px;padding:15px 18px;line-height
 .symgrid button:hover{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,transparent);transform:scale(1.06)}
 
 .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:200;transition:opacity .28s}
+.theme-pick button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;transition:.15s}
+.theme-pick button:hover{transform:scale(1.15)}
+.theme-pick button.on{border-color:var(--parchment);box-shadow:0 0 8px rgba(255,255,255,.3)}
 
 @media(max-width:1060px){
   .app{grid-template-columns:1fr;max-width:600px}
@@ -194,6 +197,7 @@ input.inp.r,input.inp.g,input.inp.b{font-size:16px;padding:15px 18px;line-height
   <span class="tag" id="roomtag">лабораторія байткоду</span>
   <div class="navbtns">
     <a href="hronopys.html" class="nb" id="tochrono" title="ChronoScript" style="text-decoration:none;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;width:auto;padding:0 12px">CHRONOSCRIPT</a>
+    <div class="theme-pick" id="themePick" title="Колір кімнати" style="display:flex;gap:5px;align-items:center;margin-right:4px"></div>
     <a href="hronopys.html" class="nb" id="tochrono" title="ChronoScript" style="text-decoration:none;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;width:auto;padding:0 12px">CHRONOSCRIPT</a>
     <a href="gallery.html" class="nb" id="tolink" title="Галерея" style="text-decoration:none;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;width:auto;padding:0 12px">ГАЛЕРЕЯ</a>
     <button class="nb" id="undo" title="Назад" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -899,6 +903,7 @@ function setLayers(n){
   if(n===1)monoMark=0;
   document.body.className=n===3?'room-rgb':'room-mono';
   $('roomtag').textContent=n===3?'режим RGB · три канали':'лабораторія байткоду';
+  if(typeof refreshThemeAccent==='function')refreshThemeAccent();
   /* палітра лише в моно */
   $('pal-btn').parentElement.style.display=n===3?'none':'';
   if(n===3&&palOpen){palOpen=false;$('pal-panel').classList.add('hide');$('pal-btn').classList.remove('on')}}
@@ -958,7 +963,55 @@ document.addEventListener('drop',e=>{e.preventDefault();if(busy)return;
   if(f&&f.type.startsWith('image/')){const dt=new DataTransfer();dt.items.add(f);
     $('file').files=dt.files;$('file').dispatchEvent(new Event('change'))}});
 
+/* ═══════ ПАЛІТРА КІМНАТИ ═══════ */
+const THEMES={
+  'янтар': {acc:'#c9a876',hot:'#e8c890',dim:'#8f7451',ink:'#0d0a08',panel:'#15100b',panel2:'#1d1610',line:'rgba(201,168,118,.22)',parch:'#ede3d0',muted:'#94836a'},
+  'смарагд':{acc:'#5ec98a',hot:'#8fe6b0',dim:'#3f8a5f',ink:'#06100b',panel:'#0a1a12',panel2:'#0e2418',line:'rgba(94,201,138,.22)',parch:'#d8f0e2',muted:'#7aa88f'},
+  'аметист':{acc:'#b088e0',hot:'#cba8ff',dim:'#7a5aa0',ink:'#0d0812',panel:'#160f22',panel2:'#1e1430',line:'rgba(176,136,224,.22)',parch:'#e8ddf5',muted:'#a08bc0'},
+  'графіт': {acc:'#a0b0c0',hot:'#d0e0f0',dim:'#6a7a8a',ink:'#0a0c0e',panel:'#141820',panel2:'#1c2430',line:'rgba(160,176,192,.22)',parch:'#e0e6ec',muted:'#8a95a0'},
+  'рубін':  {acc:'#e07080',hot:'#ff9aa8',dim:'#a04a58',ink:'#120608',panel:'#200c10',panel2:'#2c1016',line:'rgba(224,112,128,.22)',parch:'#f5dde0',muted:'#c08b92'},
+  'мідь':   {acc:'#d98a5c',hot:'#f5ad82',dim:'#9a6340',ink:'#100a07',panel:'#1c130c',panel2:'#281a10',line:'rgba(217,138,92,.22)',parch:'#f0dccb',muted:'#b08c72'},
+};
+let baseTheme='янтар';
+function applyTheme(name){
+  const t=THEMES[name]||THEMES['янтар'];baseTheme=name;
+  const r=document.body.style;
+  r.setProperty('--ink',t.ink);r.setProperty('--panel',t.panel);r.setProperty('--panel2',t.panel2);
+  r.setProperty('--parchment',t.parch);r.setProperty('--muted',t.muted);
+  /* акцент лише коли НЕ RGB-режим (RGB має свій бірюзовий) */
+  if(layers!==3){
+    r.setProperty('--acc',t.acc);r.setProperty('--acc-hot',t.hot);
+    r.setProperty('--acc-dim',t.dim);r.setProperty('--line',t.line);
+  }
+  try{localStorage.setItem('taina_theme',name);}catch(e){}
+  [...$('themePick').children].forEach(b=>b.classList.toggle('on',b.dataset.t===name));
+}
+function refreshThemeAccent(){
+  /* викликається при зміні режиму: моно бере акцент теми, RGB — свій */
+  const t=THEMES[baseTheme]||THEMES['янтар'];const r=document.body.style;
+  if(layers===3){
+    r.setProperty('--acc','#5ec8e8');r.setProperty('--acc-hot','#8fe4ff');
+    r.setProperty('--acc-dim','#3f7f96');r.setProperty('--line','rgba(94,200,232,.24)');
+  }else{
+    r.setProperty('--acc',t.acc);r.setProperty('--acc-hot',t.hot);
+    r.setProperty('--acc-dim',t.dim);r.setProperty('--line',t.line);
+  }
+}
+function buildThemes(){
+  const box=$('themePick');box.innerHTML='';
+  Object.keys(THEMES).forEach(name=>{
+    const b=document.createElement('button');b.dataset.t=name;b.title=name;
+    b.style.background=THEMES[name].acc;b.onclick=()=>applyTheme(name);
+    box.appendChild(b);
+  });
+}
+
 /* ── старт ── */
+buildThemes();
+let savedTheme='янтар';
+try{savedTheme=localStorage.getItem('taina_theme')||'янтар';}catch(e){}
+if(!THEMES[savedTheme])savedTheme='янтар';
+applyTheme(savedTheme);
 buildSwatches();
 buildSymTabs();
 buildSymGrid();
