@@ -190,19 +190,21 @@ const enc=new TextEncoder();
 
 /* ═══════ УСТАВ XI ст. ═══════ */
 const CHAR_INFO={
-  'Ѧ':'юс малий — етимологічний носовий, до XI ст. читався [’а]',
-  'ОУ':'диграф «ук» — так передавали звук [у]',
-  'Є':'єсть широке — звичайна форма літери Е',
-  'Ѥ':'йотоване єсть — [йе] на початку та після голосної',
-  'І':'і десятеричне — перед голосними та в грецизмах',
-  'Ъ':'єр — колишній надкороткий голосний після кінцевого приголосного',
-  'Ь':'єрь — м’який надкороткий голосний',
+  'Ѧ':'юс малий — «древнє а», носовий голосний',
+  'Ѣ':'ять — тут стилізує літеру Б',
+  'Є':'єсть широке — літера Е',
+  'Ѕ':'зело — «древнє з», звук [дз]',
+  'Ѵ':'іжиця — тут стилізує И',
+  'Ѡ':'омега — «древнє о»',
+  'Ѹ':'ук — диграф для У',
+  'Ѳ':'фіта — «древнє ф», з грецької θ',
+  'Ѯ':'кси — тут стилізує Х, з грецької ξ',
+  'Ρ':'грецька ро — стилізує Р',
+  'Ϲ':'лунна сигма — стилізує С',
+  'Ԁ':'округле д — давня форма',
+  'Ъ':'єр — надкороткий голосний наприкінці',
+  'Ь':'єрь — м’який знак',
   'Ї':'ї — йотований і',
-  'Ѯ':'кси — грецька літера ξ, диграф [кс]',
-  'Ѱ':'псі — грецька літера ψ, диграф [пс]',
-  'Ѳ':'фіта — грецька θ, на місці звука [ф]',
-  'Ѡ':'омега — грецька ω, часто наприкінці слова',
-  'Ѕ':'зело — давня літера для [дз] перед голосними переднього ряду',
 };
 const SIGNSET=new Set([
   'Ꙗ','Ѧ','Ѩ','Ѣ','Ѥ','Ѯ','Ѱ','Ѳ','Ѵ','Ѡ','Ѫ','Ѭ','Ъ','Ь','Ѕ','Ꙑ',
@@ -217,41 +219,33 @@ const SIGNSET=new Set([
   '❖','◈','⬡','⬢','⧉','⌘','⎔','◉','⊚','⟁','⌬',
   '❄','❆','⚡','☄','✦','✪','⊛','❃','❉','✼',
   '⚜','⁜','※','⧊','⟐','⬥','❊','⌗','⯏']);
+/* давня абетка: кожна літера → архаїчний гліф (художня стилізація) */
+const ALPHABET={
+  'а':'ѧ','б':'Ѣ','в':'в','г':'ґ','д':'ԁ','е':'є','ж':'җ','з':'ѕ',
+  'и':'ѵ','і':'ї','ї':'ї','й':'ѝ','к':'к','л':'л','м':'м','н':'н',
+  'о':'ѡ','п':'п','р':'ρ','с':'ϲ','т':'т','у':'ѹ','ф':'ѳ','х':'ѯ',
+  'ц':'џ','ч':'ҷ','ш':'ш','щ':'щ','ь':'ь','ъ':'ъ','ю':'ю','я':'ѧ',
+  'є':'є','ґ':'ґ','ё':'є',
+};
 function toUstav(name){
   if(!name)return {text:''};
   const raw=name.trim();
   let letters='',trailing='';
   for(const ch of raw){ if(SIGNSET.has(ch))trailing+=ch; else letters+=ch; }
   const low=letters.toLowerCase();
-  const chars=[...low], n=chars.length;
-  const vowels=new Set('аеєиіїоуюяѧ');
-  const res=[];
-  let i=0;
-  while(i<n){
-    const ch=chars[i], nxt=chars[i+1]||'', prev=chars[i-1]||'';
-    /* КС → Ѯ (кси), ПС → Ѱ (псі) — грецькі диграфи */
-    if(ch==='к'&&nxt==='с'){res.push('ѯ');i+=2;continue;}
-    if(ch==='п'&&nxt==='с'){res.push('ѱ');i+=2;continue;}
-    if(ch==='у'){res.push('оу');i++;continue;}          /* ук */
-    if(ch==='я'){res.push('ѧ');i++;continue;}           /* юс малий */
-    if(ch==='е'||ch==='є'){                              /* єсть / йотоване */
-      res.push((i===0||vowels.has(prev))?'ѥ':'є');i++;continue;}
-    if(ch==='и'){res.push(vowels.has(nxt)?'і':'и');i++;continue;}
-    if(ch==='і'){res.push('і');i++;continue;}
-    if(ch==='о'){res.push(i===n-1?'ѡ':'о');i++;continue;}/* кінцева омега */
-    if(ch==='з'){res.push('еиєі'.includes(nxt)?'ѕ':'з');i++;continue;} /* зело */
-    if(ch==='ф'){res.push('ѳ');i++;continue;}            /* фіта */
-    res.push(ch);i++;
+  const vowelsMod=new Set('аеєиіїоуюяѧ');
+  let out='';
+  for(const ch of low){
+    out += (ALPHABET[ch]!==undefined) ? ALPHABET[ch] : ch;
   }
-  let out=res.join('');
-  const last=out[out.length-1]||'';
-  const isCyrLetter=/[а-яґєіїёѐ-ӿ]/i.test(last);
-  if(last&&isCyrLetter&&!vowels.has(last)&&!'ъьйѡ'.includes(last))out+='ъ';
+  /* Ъ наприкінці — після приголосної (не голосна, не знак) */
+  const lastOrig=low[low.length-1]||'';
+  const isCyr=/[а-яґєіїёѐ-ӿ]/i.test(lastOrig);
+  if(lastOrig&&isCyr&&!vowelsMod.has(lastOrig)&&!'ъьй'.includes(lastOrig))out+='ъ';
   return {text:out.toUpperCase()+trailing};
 }
 function breakdown(text){
   const found=[];const seen=new Set();
-  if(text.includes('ОУ')){found.push(['ОУ',CHAR_INFO['ОУ']]);seen.add('ОУ');}
   for(const ch of text){ if(CHAR_INFO[ch]&&!seen.has(ch)){found.push([ch,CHAR_INFO[ch]]);seen.add(ch);} }
   return found;
 }
