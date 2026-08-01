@@ -700,13 +700,16 @@ $('file').onchange=e=>{
     if(best.kind==='three'){
       setLayers(3);monoMark=0;
       D.ch=[best.res[0]||'',best.res[1]||'',best.res[2]||''];
-      refreshInputs();okChime();
+      okChime();
+      /* спорожнюємо поля перед друком — щоб текст не блимав цілим */
+      for(let i=0;i<3;i++)$('t-'+i).value='';
       for(let i=0;i<3;i++)if(best.res[i])await typeOut($('t-'+i),best.res[i],22);
       showResult('✓ прочитано · три канали',null);
     }else{
       setLayers(1);monoMark=0;
       const txt=best.res[0]||'';
-      D.single=txt;refreshInputs();okChime();
+      D.single=txt;okChime();
+      $('txt').value='';   /* спорожнюємо перед друком */
       await typeOut($('txt'),txt,26);
       /* прокрутка в кінець: видно фінал тексту */
       const el=$('txt');el.scrollTop=el.scrollHeight;el.selectionStart=el.selectionEnd=el.value.length;
