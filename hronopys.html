@@ -193,10 +193,16 @@ const CHAR_INFO={
   'Ѧ':'юс малий — етимологічний носовий, до XI ст. читався [’а]',
   'ОУ':'диграф «ук» — так передавали звук [у]',
   'Є':'єсть широке — звичайна форма літери Е',
+  'Ѥ':'йотоване єсть — [йе] на початку та після голосної',
   'І':'і десятеричне — перед голосними та в грецизмах',
   'Ъ':'єр — колишній надкороткий голосний після кінцевого приголосного',
   'Ь':'єрь — м’який надкороткий голосний',
   'Ї':'ї — йотований і',
+  'Ѯ':'кси — грецька літера ξ, диграф [кс]',
+  'Ѱ':'псі — грецька літера ψ, диграф [пс]',
+  'Ѳ':'фіта — грецька θ, на місці звука [ф]',
+  'Ѡ':'омега — грецька ω, часто наприкінці слова',
+  'Ѕ':'зело — давня літера для [дз] перед голосними переднього ряду',
 };
 const SIGNSET=new Set([
   'Ꙗ','Ѧ','Ѩ','Ѣ','Ѥ','Ѯ','Ѱ','Ѳ','Ѵ','Ѡ','Ѫ','Ѭ','Ъ','Ь','Ѕ','Ꙑ',
@@ -220,20 +226,27 @@ function toUstav(name){
   const chars=[...low], n=chars.length;
   const vowels=new Set('аеєиіїоуюяѧ');
   const res=[];
-  for(let idx=0;idx<n;idx++){
-    const ch=chars[idx], nxt=chars[idx+1]||'';
-    if(ch==='у'){res.push('оу');continue;}
-    if(ch==='я'){res.push('ѧ');continue;}
-    if(ch==='е'||ch==='є'){res.push('є');continue;}
-    if(ch==='и'){res.push(vowels.has(nxt)?'і':'и');continue;}
-    if(ch==='і'){res.push('і');continue;}
-    res.push(ch);
+  let i=0;
+  while(i<n){
+    const ch=chars[i], nxt=chars[i+1]||'', prev=chars[i-1]||'';
+    /* КС → Ѯ (кси), ПС → Ѱ (псі) — грецькі диграфи */
+    if(ch==='к'&&nxt==='с'){res.push('ѯ');i+=2;continue;}
+    if(ch==='п'&&nxt==='с'){res.push('ѱ');i+=2;continue;}
+    if(ch==='у'){res.push('оу');i++;continue;}          /* ук */
+    if(ch==='я'){res.push('ѧ');i++;continue;}           /* юс малий */
+    if(ch==='е'||ch==='є'){                              /* єсть / йотоване */
+      res.push((i===0||vowels.has(prev))?'ѥ':'є');i++;continue;}
+    if(ch==='и'){res.push(vowels.has(nxt)?'і':'и');i++;continue;}
+    if(ch==='і'){res.push('і');i++;continue;}
+    if(ch==='о'){res.push(i===n-1?'ѡ':'о');i++;continue;}/* кінцева омега */
+    if(ch==='з'){res.push('еиєі'.includes(nxt)?'ѕ':'з');i++;continue;} /* зело */
+    if(ch==='ф'){res.push('ѳ');i++;continue;}            /* фіта */
+    res.push(ch);i++;
   }
   let out=res.join('');
   const last=out[out.length-1]||'';
-  /* Ъ лише після кириличної приголосної — не після цифр, латиниці, знаків */
   const isCyrLetter=/[а-яґєіїёѐ-ӿ]/i.test(last);
-  if(last&&isCyrLetter&&!vowels.has(last)&&!'ъьй'.includes(last))out+='ъ';
+  if(last&&isCyrLetter&&!vowels.has(last)&&!'ъьйѡ'.includes(last))out+='ъ';
   return {text:out.toUpperCase()+trailing};
 }
 function breakdown(text){
