@@ -1010,15 +1010,24 @@ function applyMode(idx){
   if(layers!==3){
     r.setProperty('--acc',m.acc);r.setProperty('--acc-hot',m.hot);
     r.setProperty('--acc-dim',m.dim);r.setProperty('--line',m.line);
+  }else if(typeof refreshThemeAccent==='function'){
+    refreshThemeAccent();  /* RGB: оновити бірюзовий під світле/темне тло */
   }
   try{localStorage.setItem('taina_mode_idx',modeIdx);}catch(e){}
 }
 let baseAcc={acc:'#c9a876',hot:'#e8c890',dim:'#8f7451',line:'rgba(201,168,118,.22)'};
 function refreshThemeAccent(){
   const r=document.body.style;
+  const isLight=MODES[modeIdx].light;
   if(layers===3){
-    r.setProperty('--acc','#5ec8e8');r.setProperty('--acc-hot','#8fe4ff');
-    r.setProperty('--acc-dim','#3f7f96');r.setProperty('--line','rgba(94,200,232,.24)');
+    /* RGB: бірюзовий, але темніший на світлому тлі — щоб читалось */
+    if(isLight){
+      r.setProperty('--acc','#186680');r.setProperty('--acc-hot','#0f4e64');
+      r.setProperty('--acc-dim','#4a8ca0');r.setProperty('--line','rgba(24,102,128,.30)');
+    }else{
+      r.setProperty('--acc','#5ec8e8');r.setProperty('--acc-hot','#8fe4ff');
+      r.setProperty('--acc-dim','#3f7f96');r.setProperty('--line','rgba(94,200,232,.24)');
+    }
   }else{
     r.setProperty('--acc',baseAcc.acc);r.setProperty('--acc-hot',baseAcc.hot);
     r.setProperty('--acc-dim',baseAcc.dim);r.setProperty('--line',baseAcc.line);
