@@ -472,8 +472,10 @@ function stopScanSound(){if(!scanNodes)return;const{c,nodes,gains}=scanNodes;sca
 function flash(){const f=$('flash');f.style.opacity='.7';setTimeout(()=>f.style.opacity='0',240)}
 function typeOut(el,text,speed=30){
   return new Promise(res=>{el.value='';let i=0;
+    const isTA=el.tagName==='TEXTAREA';
     if(!text.length){res();return}
     const t=setInterval(()=>{el.value=text.slice(0,++i);
+      if(isTA){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,200)+'px';}
       try{el.selectionStart=el.selectionEnd=el.value.length}catch(e){}
       if(i%2===1)typeClick();
       if(i>=text.length){clearInterval(t);res()}},speed);});}
@@ -790,6 +792,7 @@ $('file').onchange=e=>{
       D.single=txt;okChime();
       $('txt').value='';   /* спорожнюємо перед друком */
       await typeOut($('txt'),txt,26);
+      grow($('txt'),200);  /* поле росте під довжину розшифрованого тексту */
       /* прокрутка в кінець: видно фінал тексту */
       const el=$('txt');el.scrollTop=el.scrollHeight;el.selectionStart=el.selectionEnd=el.value.length;
       prevLen=txt.length;pushHist();
