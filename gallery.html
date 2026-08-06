@@ -109,6 +109,7 @@ footer{border-top:1px solid var(--line);padding:26px 22px;text-align:center;font
     <div class="mw" id="modal-word"></div>
     <div class="mmeta" id="modal-meta"></div>
     <div class="share">
+      <button id="share-btn">Поділитися</button>
       <button id="share-link">🔗 Копіювати посилання</button>
       <a href="index.html" class="navlink" style="padding:10px 16px">✎ Створити свій</a>
     </div>
@@ -256,7 +257,9 @@ function renderGallery(items){
   openFromURL();
 }
 let ALL_ITEMS=[];
+let curRec=null;
 function openModal(rec){
+  curRec=rec;
   renderBytecode($('modal-cv'),rec);
   $('modal-word').textContent=rec.word;
   const modeLabel={oct:'×8',quad:'×4',half:'×2',row:'×1'}[rec.mode]||rec.mode;
@@ -276,6 +279,59 @@ function closeModal(){
 $('modal-close').onclick=closeModal;
 $('modal').onclick=e=>{if(e.target===$('modal'))closeModal();};
 $('share-link').onclick=()=>{navigator.clipboard.writeText(location.href).then(()=>toast('Посилання скопійовано'));};
+
+/* ═══════ ПОДІЛИТИСЯ ═══════ */
+async function copyLinkFallback(){
+  try{
+    await navigator.clipboard.writeText(location.href);
+    toast('Посилання скопійовано');
+  }catch(e){
+    /* якщо і буфер недоступний — показати поле з посиланням */
+    try{
+      const inp=document.createElement('input');
+      inp.value=location.href;inp.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;width:80vw;max-width:420px;padding:12px;font-size:14px';
+      document.body.appendChild(inp);inp.select();
+      document.execCommand&&document.execCommand('copy');
+      toast('Посилання скопійовано');
+      setTimeout(()=>inp.remove(),100);
+    }catch(_){}
+  }
+}
+$('share-btn').onclick=async()=>{
+  const word=curRec?curRec.word:'taina';
+  const shareData={
+    title:'taina',
+    text:`Орнамент, що містить текст — ${word}. Створено на taina.`,
+    url:location.href,
+  };
+  try{
+    /* спроба прикласти PNG орнаменту як файл */
+    let filePayload=null;
+    try{
+      const cv=$('modal-cv');
+      const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+      if(blob){
+        const file=new File([blob],`taina_${word}.png`,{type:'image/png'});
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+          filePayload={...shareData,files:[file]};
+        }
+      }
+    }catch(e){/* файл не вийшов — поділимось без нього */}
+
+    if(navigator.share){
+      try{
+        await navigator.share(filePayload||shareData);
+      }catch(err){
+        /* користувач скасував — це не помилка, нічого не робимо */
+        if(err&&err.name!=='AbortError'){await copyLinkFallback();}
+      }
+    }else{
+      await copyLinkFallback();
+    }
+  }catch(e){
+    await copyLinkFallback();
+  }
+};
 let toastT;
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');
   clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('show'),2200);}
