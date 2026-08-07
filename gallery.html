@@ -305,24 +305,11 @@ $('share-btn').onclick=async()=>{
     url:location.href,
   };
   try{
-    /* спроба прикласти PNG орнаменту як файл */
-    let filePayload=null;
-    try{
-      const cv=$('modal-cv');
-      const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
-      if(blob){
-        const file=new File([blob],`taina_${word}.png`,{type:'image/png'});
-        if(navigator.canShare&&navigator.canShare({files:[file]})){
-          filePayload={...shareData,files:[file]};
-        }
-      }
-    }catch(e){/* файл не вийшов — поділимось без нього */}
-
     if(navigator.share){
       try{
-        await navigator.share(filePayload||shareData);
+        await navigator.share(shareData);
       }catch(err){
-        /* користувач скасував — це не помилка, нічого не робимо */
+        /* користувач скасував — це не помилка */
         if(err&&err.name!=='AbortError'){await copyLinkFallback();}
       }
     }else{
