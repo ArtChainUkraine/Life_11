@@ -651,20 +651,30 @@ function render(){
 /* ═══════ ДЕКОДЕР КАРТИНКИ ═══════ */
 function scanImage(px,IW,IH){
   const lum=p=>(px[p]+px[p+1]+px[p+2])/3;
-  const measure=()=>{let best=1e9;
-    for(const f of [.2,.35,.5,.65,.8]){
+  /* збираємо довжини серій по кількох лініях; повертаємо кандидатів розміру клітини */
+  const measure=()=>{
+    const runs=[];
+    for(const f of [.15,.25,.35,.5,.65,.75,.85]){
       const y=Math.floor(IH*f);let prev=-1,len=0;
       for(let x=0;x<IW;x++){const cc=lum((y*IW+x)*4)>127?1:0;
-        if(cc===prev)len++;else{if(prev>=0&&len<best&&x>1&&x<IW-1)best=len;prev=cc;len=1}}
+        if(cc===prev)len++;else{if(prev>=0&&x>1&&x<IW-1)runs.push(len);prev=cc;len=1}}
       const x0=Math.floor(IW*f);prev=-1;len=0;
       for(let y2=0;y2<IH;y2++){const cc=lum((y2*IW+x0)*4)>127?1:0;
-        if(cc===prev)len++;else{if(prev>=0&&len<best&&y2>1&&y2<IH-1)best=len;prev=cc;len=1}}}
-    return best===1e9?0:best;};
-  const mm=measure();
-  const readChan=(T,pad,n,ci)=>{const g=new Uint8Array(n*n),s=IW/T;
+        if(cc===prev)len++;else{if(prev>=0&&y2>1&&y2<IH-1)runs.push(len);prev=cc;len=1}}}
+    if(!runs.length)return [];
+    const freq=new Map();
+    for(const r of runs)if(r>0)freq.set(r,(freq.get(r)||0)+1);
+    /* найчастіші серії = розмір клітини (стійко до рамки й шуму) */
+    const sorted=[...freq.entries()].sort((a,b)=>b[1]-a[1]);
+    const cands=new Set();
+    for(let i=0;i<Math.min(4,sorted.length);i++)cands.add(sorted[i][0]);
+    cands.add(Math.min(...runs));
+    return [...cands].filter(m=>m>0);
+  };
+  const mmCands=measure();
+  const readChan=(T,pad,n,ci)=>{const g=new Uint8Array(n*n),s=IW/T,sy=IH/T;
     for(let y=0;y<n;y++)for(let x=0;x<n;x++){
-      const p=(Math.floor((y+pad+.5)*s)*IW+Math.floor((x+pad+.5)*s))*4;
-      /* яскравісний канал (моно) поріг 110; кольоровий канал поріг RGBTHR */
+      const p=(Math.floor((y+pad+.5)*sy)*IW+Math.floor((x+pad+.5)*s))*4;
       const v=ci<0?lum(p):px[p+ci];
       g[y*n+x]=v>(ci<0?110:RGBTHR)?1:0;}
     return g;};
@@ -676,8 +686,17 @@ function scanImage(px,IW,IH){
     return g;};
 
   const Tset=new Set();
-  if(mm>0)for(const k of [1,2,.5]){const ms=Math.round(mm*k);
-    if(ms>0&&IW%ms===0){const T=IW/ms;if(T>=MINN&&T<=200)Tset.add(T)}}
+  for(const mm of mmCands){
+    if(mm<2)continue;
+    /* точний варіант (як раніше) */
+    for(const k of [1,2,.5]){const ms=Math.round(mm*k);
+      if(ms>0&&IW%ms===0){const T=IW/ms;if(T>=MINN&&T<=200)Tset.add(T)}}
+    /* стійкий варіант: T як кількість клітин при дробовому кроці — читає масштабовані */
+    for(const k of [1,2,.5]){const cell=mm*k;
+      if(cell>=2){const Tc=IW/cell;
+        for(const Tr of [Math.round(Tc),Math.floor(Tc),Math.ceil(Tc)]){
+          if(Tr>=MINN&&Tr<=200)Tset.add(Tr);}}}
+  }
 
   const results=[];
   if(IW===IH)for(const T of Tset){
@@ -709,7 +728,7 @@ function scanImage(px,IW,IH){
   for(const pad of [0,1,2])for(const w of [8,16,24,32]){
     const TW=w+pad*2;if(IW%TW)continue;
     const cell=IW/TW;if(IH%cell)continue;
-    if(mm>0&&Math.abs(cell-mm)>1&&Math.abs(cell-mm*2)>1)continue;
+    if(mmCands.length&&!mmCands.some(mm=>Math.abs(cell-mm)<=1.5||Math.abs(cell-mm*2)<=1.5))continue;
     const TH=IH/cell,h=TH-pad*2;if(h<1||h>250)continue;
     const g=readRow(TW,pad,w,h,-1);
     const t=rowDecode(g,w,h);
@@ -734,6 +753,15 @@ function scanImage(px,IW,IH){
     const bx=b.kind==='three'?b.res.filter(x=>x).length:9;
     if(a.kind==='three'&&b.kind==='three'&&ax!==bx)return bx-ax;
     return a.n-b.n;});
+  /* фільтр сміття: якщо є впевнений результат (≥3 символи), прибираємо
+     дуже короткі побічні знахідки від ширшого перебору T */
+  if(uniq.length>1){
+    const topLen=uniq[0].res.filter(x=>x).join('').length;
+    if(topLen>=3){
+      const filtered=uniq.filter(r=>r.res.filter(x=>x).join('').length>=3);
+      if(filtered.length)return filtered;
+    }
+  }
   return uniq;}
 
 function drawScanned(url){
