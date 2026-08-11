@@ -1225,49 +1225,64 @@ function scanPhoto(px,IW,IH){
     const ru=findRuler(sq.px,sq.N,sq.N);if(!ru)continue;
     const rr=decodeByRuler(sq.px,sq.N,sq.N,ru);if(rr.length)out=out.concat(rr);}
   return out;}
-  // ═══ КАМЕРА ═══
-let camStream=null, camRAF=null, camBusy=false;
+// ═══ КАМЕРА (живе відео + підтвердження 2 кадрами: краще не прочитати, ніж збрехати) ═══
+let camStream=null, camRAF=null, camBusy=false, camLastText=null, camTimer=0;
+function camEls(){return {v:$('cam-video'),vf:$('vf'),btn:$('cam-btn')};}
 async function startCam(){
-  const video=document.getElementById('cam-video');
+  const {v,vf,btn}=camEls();
   try{
-    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920}}});
-    video.srcObject=camStream; await video.play();
-    document.getElementById('cam-btn').textContent='⏹ Зупинити';
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1920}}});
+    v.srcObject=camStream; v.setAttribute('playsinline','');
+    await v.play();
+    CV.classList.add('hide'); v.classList.remove('hide'); vf.classList.remove('hide');
+    $('stage').classList.add('scanning');
+    btn.textContent='⏹ Зупинити'; $('rt').innerHTML='<span class="w">наведи на код…</span>';
+    camLastText=null; camTimer=0; camBusy=false;
+    startScanSound();
     camLoop();
   }catch(e){ alert('Камера недоступна: '+e); }
 }
 function stopCam(){
+  const {v,vf,btn}=camEls();
   if(camRAF)cancelAnimationFrame(camRAF); camRAF=null;
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
-  document.getElementById('cam-btn').textContent='📷 Камера';
+  if(v.srcObject)v.srcObject=null;
+  v.classList.add('hide'); vf.classList.add('hide'); CV.classList.remove('hide');
+  $('stage').classList.remove('scanning');
+  stopScanSound();
+  btn.textContent='📷 Камера';
 }
 function camLoop(){
-  const video=document.getElementById('cam-video');
+  const {v}=camEls();
   if(!camStream){return;}
-  if(!camBusy && video.readyState>=2){
-    camBusy=true;
-    const c=document.createElement('canvas');
-    const sz=Math.min(video.videoWidth,video.videoHeight);
-    c.width=c.height=sz;
-    const cx=c.getContext('2d',{willReadFrequently:true});
-    cx.drawImage(video,(video.videoWidth-sz)/2,(video.videoHeight-sz)/2,sz,sz,0,0,sz,sz);
-    const img=new Image();
-    img.onload=()=>{
+  const now=performance.now();
+  if(!camBusy && v.readyState>=2 && now-camTimer>250){
+    camTimer=now; camBusy=true;
+    try{
+      const sz=Math.min(v.videoWidth,v.videoHeight)||512;
+      const c=document.createElement('canvas'); c.width=c.height=sz;
+      const cx=c.getContext('2d',{willReadFrequently:true});
+      cx.drawImage(v,(v.videoWidth-sz)/2,(v.videoHeight-sz)/2,sz,sz,0,0,sz,sz);
       let found=[];
-      try{ found=runDecodeAttempts(img); }catch(e){}
+      try{ found=runDecodeAttempts(c); }catch(e){}
       if(found.length){
-        stopCam();
-        const shot=document.createElement('canvas');shot.width=shot.height=512;
-        const sctx=shot.getContext('2d');sctx.drawImage(img,0,0,512,512);
-        showCamResult(found,shot.toDataURL('image/png'));
-      }
-      camBusy=false;
-    };
-    img.src=c.toDataURL('image/png');
+        const txt=found[0].res.filter(x=>x).join('\u0001');
+        if(txt && txt===camLastText){
+          const shot=document.createElement('canvas');shot.width=shot.height=512;
+          shot.getContext('2d').drawImage(c,0,0,512,512);
+          const url=shot.toDataURL('image/png');
+          stopCam();
+          showCamResult(found,url);
+          camBusy=false; return;
+        }
+        camLastText=txt;
+      }else{ camLastText=null; }
+    }catch(e){}
+    camBusy=false;
   }
   camRAF=requestAnimationFrame(camLoop);
 }
-document.getElementById('cam-btn').onclick=()=>{ camStream?stopCam():startCam(); };
+$('cam-btn').onclick=()=>{ camStream?stopCam():startCam(); };
 
   async function showCamResult(found,shotURL){
   flash();
