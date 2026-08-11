@@ -343,6 +343,12 @@ input.inp.r,input.inp.g,input.inp.b{font-size:16px;padding:15px 18px;line-height
     </div>
 
     <div class="action">
+
+
+      <button id="cam-btn" class="mainbtn" style="margin-top:8px">📷 Камера</button>
+<video id="cam-video" playsinline style="display:none"></video>
+
+      
       <div class="menu hide" id="menu"></div>
       <button class="mainbtn" id="mainbtn"></button>
     </div>
@@ -1208,6 +1214,48 @@ function scanPhoto(px,IW,IH){
     const ru=findRuler(sq.px,sq.N,sq.N);if(!ru)continue;
     const rr=decodeByRuler(sq.px,sq.N,sq.N,ru);if(rr.length)out=out.concat(rr);}
   return out;}
+  // ═══ КАМЕРА ═══
+let camStream=null, camRAF=null, camBusy=false;
+async function startCam(){
+  const video=document.getElementById('cam-video');
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920}}});
+    video.srcObject=camStream; await video.play();
+    document.getElementById('cam-btn').textContent='⏹ Зупинити';
+    camLoop();
+  }catch(e){ alert('Камера недоступна: '+e); }
+}
+function stopCam(){
+  if(camRAF)cancelAnimationFrame(camRAF); camRAF=null;
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  document.getElementById('cam-btn').textContent='📷 Камера';
+}
+function camLoop(){
+  const video=document.getElementById('cam-video');
+  if(!camStream){return;}
+  if(!camBusy && video.readyState>=2){
+    camBusy=true;
+    const c=document.createElement('canvas');
+    const sz=Math.min(video.videoWidth,video.videoHeight);
+    c.width=c.height=sz;
+    const cx=c.getContext('2d',{willReadFrequently:true});
+    cx.drawImage(video,(video.videoWidth-sz)/2,(video.videoHeight-sz)/2,sz,sz,0,0,sz,sz);
+    const img=new Image();
+    img.onload=()=>{
+      let found=[];
+      try{ found=runDecodeAttempts(img); }catch(e){}
+      if(found.length){
+        stopCam();
+        onCamHit(found);
+      }
+      camBusy=false;
+    };
+    img.src=c.toDataURL('image/png');
+  }
+  camRAF=requestAnimationFrame(camLoop);
+}
+document.getElementById('cam-btn').onclick=()=>{ camStream?stopCam():startCam(); };
+
   
   function drawScanned(url){
   return new Promise(res=>{const im=new Image();
