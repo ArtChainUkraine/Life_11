@@ -1246,7 +1246,9 @@ function camLoop(){
       try{ found=runDecodeAttempts(img); }catch(e){}
       if(found.length){
         stopCam();
-        onCamHit(found);
+        const shot=document.createElement('canvas');shot.width=shot.height=512;
+        const sctx=shot.getContext('2d');sctx.drawImage(img,0,0,512,512);
+        showCamResult(found,shot.toDataURL('image/png'));
       }
       camBusy=false;
     };
