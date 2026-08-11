@@ -813,7 +813,7 @@ function findRuler(px,IW,IH){if(IW!==IH)return null;
   let T=null,fb=0;for(const [k,v] of freq)if(v>fb){fb=v;T=k;}
   return {T,cell:ruler_median(edges.filter(e=>e.T===T).map(e=>e.cell)),edges:edges.length};}
 
-const VOTE_MARGIN=0.5, VOTE_AGREE=0.90;
+
 function decodeVoted(g,n,m,offset){
   const bc=baseCells(m,n),by=[],margins=[];const start=offset||0;
   for(let i=start;i+7<bc.length;i+=8){let v=0;
