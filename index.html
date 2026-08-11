@@ -1235,7 +1235,7 @@ $('file').onchange=e=>{
     st.classList.add('scanning');startScanSound();
     $('rt').innerHTML='<span class="w">сканування…</span>';
     const [found]=await Promise.all([
-   (async()=>{await sleep(30);return runDecodeAttempts(im)})(),
+ (async()=>{await sleep(30);return runDecodeAttempts(im)})(),
       sleep(1600)]);
     stopScanSound();st.classList.remove('scanning');
 
