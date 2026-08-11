@@ -1258,7 +1258,30 @@ function camLoop(){
 }
 document.getElementById('cam-btn').onclick=()=>{ camStream?stopCam():startCam(); };
 
-  
+  async function showCamResult(found,shotURL){
+  flash();
+  const best=found[0];
+  mode=best.mode;syncSeg('sym','m',mode);
+  scannedImg=shotURL;
+  if(best.kind==='three'){
+    setLayers(3);monoMark=0;
+    D.ch=[best.res[0]||'',best.res[1]||'',best.res[2]||''];
+    okChime();
+    for(let i=0;i<3;i++)$('t-'+i).value='';
+    for(let i=0;i<3;i++)if(best.res[i]){await typeOut($('t-'+i),best.res[i],22);grow($('t-'+i),120);}
+    showResult('✓ прочитано · камера',null);
+  }else{
+    setLayers(1);monoMark=0;
+    const txt=best.res[0]||'';
+    D.single=txt;okChime();
+    $('txt').value='';
+    await typeOut($('txt'),txt,26);
+    grow($('txt'),200);
+    const el=$('txt');el.scrollTop=el.scrollHeight;
+    showResult('✓ прочитано · камера',txt);
+  }
+  hasImage=true;syncMain();
+}
   function drawScanned(url){
   return new Promise(res=>{const im=new Image();
     im.onload=()=>{OFF.width=OFF.height=512;OCTX.imageSmoothingEnabled=false;
