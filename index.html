@@ -678,7 +678,7 @@ if(pad>=3){
       if(!grid.r[i])continue;   /* нуль = фон */
       put(x,y,colOne);}}}
 function render(){
-  const pad=frameW,tw=W+pad*2,th=H+pad*2;
+  const pad=(frameW>=2?3:frameW),tw=W+pad*2,th=H+pad*2;
   const cell=Math.max(2,Math.floor(760/Math.max(tw,th)));
   OFF.width=tw*cell;OFF.height=th*cell;
   OCTX.imageSmoothingEnabled=false;
