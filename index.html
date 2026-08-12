@@ -639,17 +639,21 @@ const FRAME_A='#0a0806';     /* чорна клітина лінійки */
 const FRAME_B='#f4efe6';     /* біла клітина лінійки */
 function paint(ctx,cell,pad){
   const TW=(W+pad*2)*cell,TH=(H+pad*2)*cell;
-  if(pad>=2){
-    /* рамка-лінійка: по периметру чергуються чорні/білі клітини завтовшки 1 клітину.
-       дає декодеру точні мітки розміру клітини — сітка не пливе за будь-якого розміру */
+if(pad>=3){
+    /* НОВА рамка (3 шари, D4-симетрична): суцільний тёмний / світлий / зебра.
+       Суцільна зовнішня лінія дає точні 4 кути для локалізації. */
     ctx.fillStyle=colZero;ctx.fillRect(0,0,TW,TH);
-    const CW=W+pad*2, CH=H+pad*2;  /* всього клітин зі рамкою */
-    const cellAt=(cx,cy)=>{ctx.fillStyle=((cx+cy)%2===0)?FRAME_A:FRAME_B;
-      ctx.fillRect(cx*cell,cy*cell,cell,cell)};
-    for(let cx=0;cx<CW;cx++){cellAt(cx,0);cellAt(cx,CH-1);}          /* верх, низ */
-    for(let cy=1;cy<CH-1;cy++){cellAt(0,cy);cellAt(CW-1,cy);}        /* ліво, право */
-    /* друга рамка (біле повітря) між лінійкою та візерунком */
-    ctx.fillStyle=FRAME_B;ctx.fillRect(cell,cell,TW-2*cell,TH-2*cell);
+    const CW=W+pad*2, CH=H+pad*2;
+    const cellAt=(cx,cy,col)=>{ctx.fillStyle=col;ctx.fillRect(cx*cell,cy*cell,cell,cell)};
+    /* шар 1 — суцільний тёмний периметр */
+    for(let cx=0;cx<CW;cx++){cellAt(cx,0,FRAME_A);cellAt(cx,CH-1,FRAME_A);}
+    for(let cy=1;cy<CH-1;cy++){cellAt(0,cy,FRAME_A);cellAt(CW-1,cy,FRAME_A);}
+    /* шар 2 — суцільний світлий роздільник */
+    for(let cx=1;cx<CW-1;cx++){cellAt(cx,1,FRAME_B);cellAt(cx,CH-2,FRAME_B);}
+    for(let cy=2;cy<CH-2;cy++){cellAt(1,cy,FRAME_B);cellAt(CW-2,cy,FRAME_B);}
+    /* шар 3 — зебра (даёт число клітин T) */
+    for(let cx=2;cx<CW-2;cx++){cellAt(cx,2,((cx+2)%2===0)?FRAME_A:FRAME_B);cellAt(cx,CH-3,((cx+CH-3)%2===0)?FRAME_A:FRAME_B);}
+    for(let cy=3;cy<CH-3;cy++){cellAt(2,cy,((2+cy)%2===0)?FRAME_A:FRAME_B);cellAt(CW-3,cy,((CW-3+cy)%2===0)?FRAME_A:FRAME_B);}
   }else if(pad>0){
     ctx.fillStyle=FRAME_COL;ctx.fillRect(0,0,TW,TH);
   }
