@@ -1310,10 +1310,9 @@ function camLoop(){
   if(!camBusy && v.readyState>=2 && now-camTimer>250){
     camTimer=now; camBusy=true;
     try{
-      const sz=Math.min(v.videoWidth,v.videoHeight)||512;
-      const c=document.createElement('canvas'); c.width=c.height=sz;
+     const c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight;
       const cx=c.getContext('2d',{willReadFrequently:true});
-      cx.drawImage(v,(v.videoWidth-sz)/2,(v.videoHeight-sz)/2,sz,sz,0,0,sz,sz);
+      cx.drawImage(v,0,0);
       let found=[];
       try{ found=runDecodeAttempts(c); }catch(e){}
       if(found.length){
