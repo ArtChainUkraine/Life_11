@@ -1838,6 +1838,77 @@ function setLayers(n){
   if(n===3&&palOpen){palOpen=false;$('pal-panel').classList.add('hide');$('pal-btn').classList.remove('on')}}
 function refreshInputs(){
   $('txt').value=D.single;autoGrow();
+
+/* ═══════ МОБІЛЬНА ЛОГІКА (шапка, нижня панель, action sheet, клавіатура) ═══════ */
+(function(){
+  const mq=window.matchMedia('(max-width:768px)');
+
+  /* ── нижня панель дій: [Зберегти] [Сканувати] ── */
+  const bar=document.createElement('div');bar.id='mobabar';
+  bar.innerHTML='<button id="mb-save" disabled>⤓ Зберегти</button>'+
+                '<button id="mb-scan">⌖ Сканувати</button>';
+  document.body.appendChild(bar);
+
+  /* Зберегти — активна лише коли є код */
+  function syncMobSave(){const b=document.getElementById('mb-save');
+    if(b)b.disabled=!(typeof hasImage!=='undefined'&&hasImage);}
+  /* стежимо за появою коду (легкий поллінг + хук на syncMain) */
+  if(typeof syncMain==='function'){const _sm=syncMain;window.syncMain=function(){_sm.apply(this,arguments);syncMobSave();};}
+  setInterval(syncMobSave,500);
+
+  document.getElementById('mb-save').onclick=()=>{
+    if(typeof hasImage==='undefined'||!hasImage)return;
+    const n=(typeof defaultName==='function'?defaultName():'taina');
+    if(typeof savePNG==='function')savePNG(n);
+  };
+  document.getElementById('mb-scan').onclick=()=>openSheet();
+
+  /* ── action sheet: Камера / Завантажити ── */
+  const sheet=document.createElement('div');sheet.id='sheet';
+  sheet.innerHTML='<div class="veil2"></div><div class="card">'+
+    '<div class="sh-t">Сканувати код</div>'+
+    '<button class="sh-b" id="sh-cam">📷 Камера</button>'+
+    '<button class="sh-b" id="sh-file">🖼 Завантажити з галереї</button>'+
+    '<button class="sh-b sh-cancel" id="sh-x">Скасувати</button></div>';
+  document.body.appendChild(sheet);
+  function openSheet(){sheet.classList.add('on');}
+  function closeSheet(){sheet.classList.remove('on');}
+  sheet.querySelector('.veil2').onclick=closeSheet;
+  document.getElementById('sh-x').onclick=closeSheet;
+  document.getElementById('sh-cam').onclick=()=>{closeSheet();
+    if(typeof startCam==='function')startCam();};
+  document.getElementById('sh-file').onclick=()=>{closeSheet();
+    const f=document.getElementById('file');if(f)f.click();};
+
+  /* ── акордеон: заголовки секцій у бічних панелях згортають вміст ── */
+  function setupAccordion(){
+    if(!mq.matches)return;
+    document.querySelectorAll('.side .grp > .sec-t').forEach(t=>{
+      if(t.dataset.acc)return;t.dataset.acc='1';
+      t.addEventListener('click',()=>{t.parentElement.classList.toggle('mclosed');});
+    });
+  }
+  setupAccordion();
+  mq.addEventListener?.('change',setupAccordion);
+
+  /* ── шапка: одна динамічна кнопка (тут завжди «Галерея» → gallery.html) ── */
+  /* статичний таб і introBtn ховаються через CSS; лишається лого + посилання Галерея,
+     яке вже є в розмітці. Нічого додавати не треба. */
+
+  /* ── клавіатура: стискаємо canvas, аби не перекривало ввід ── */
+  const vv=window.visualViewport;
+  function onKbd(){
+    if(!mq.matches){document.body.classList.remove('kbd');return;}
+    /* якщо висота visualViewport помітно менша за вікно — клавіатура відкрита */
+    const kb = vv ? (window.innerHeight - vv.height > 140) : false;
+    document.body.classList.toggle('kbd',kb);
+  }
+  if(vv){vv.addEventListener('resize',onKbd);vv.addEventListener('scroll',onKbd);}
+  /* фокус/блюр як запасний сигнал */
+  document.addEventListener('focusin',e=>{if(mq.matches&&e.target.classList&&e.target.classList.contains('inp'))document.body.classList.add('kbd');});
+  document.addEventListener('focusout',()=>{setTimeout(onKbd,60);});
+})();
+  
   for(let i=0;i<3;i++)$('t-'+i).value=D.ch[i]||'';}
 /* авторост моно-поля до 3 рядків */
 function grow(el,max){if(!el)return;el.style.height='auto';el.style.height=Math.min(el.scrollHeight,max)+'px';}
